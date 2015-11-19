@@ -282,6 +282,8 @@ LUA_API int   (lua_load) (lua_State *L, lua_Reader reader, void *dt,
 
 LUA_API int (lua_dump) (lua_State *L, lua_Writer writer, void *data, int strip);
 
+LUA_API void (lua_clonefunction) (lua_State *L, const void *eL);
+
 
 /*
 ** coroutine functions
@@ -458,6 +460,11 @@ struct lua_Debug {
 
 /* }====================================================================== */
 
+/* Add by skynet */
+
+LUA_API lua_State * skynet_sig_L;
+LUA_API void (lua_checksig_)(lua_State *L);
+#define lua_checksig(L) if (skynet_sig_L) { lua_checksig_(L); }
 
 /******************************************************************************
 * Copyright (C) 1994-2018 Lua.org, PUC-Rio.
