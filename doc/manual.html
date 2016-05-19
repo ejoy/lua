@@ -35,7 +35,7 @@ Freely available under the terms of the
 <!-- ====================================================================== -->
 <p>
 
-<!-- $Id: manual.of,v 1.160 2016/05/03 15:51:04 roberto Exp $ -->
+<!-- $Id: manual.of,v 1.161 2016/05/18 18:20:41 roberto Exp $ -->
 
 
 
@@ -410,11 +410,11 @@ and the metamethod is the function that performs the addition.
 You can query the metatable of any value
 using the <a href="#pdf-getmetatable"><code>getmetatable</code></a> function.
 Lua queries metamethods in metatables using a raw access (see <a href="#pdf-rawget"><code>rawget</code></a>).
-So, to retrieve the metamethod for event <code>env</code> in object <code>o</code>,
+So, to retrieve the metamethod for event <code>ev</code> in object <code>o</code>,
 Lua does the equivalent to the following code:
 
 <pre>
-     rawget(getmetatable(<em>o</em>) or {}, "__<em>env</em>")
+     rawget(getmetatable(<em>o</em>) or {}, "__<em>ev</em>")
 </pre>
 
 <p>
@@ -10898,7 +10898,7 @@ and LiteralString, see <a href="#3.1">&sect;3.1</a>.)
 
 <P CLASS="footer">
 Last update:
-Wed May  4 20:35:23 BRT 2016
+Wed May 18 18:55:35 BRT 2016
 </P>
 <!--
 Last change: revised for Lua 5.3.3
