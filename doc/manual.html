@@ -35,7 +35,7 @@ Freely available under the terms of the
 <!-- ====================================================================== -->
 <p>
 
-<!-- $Id: manual.of,v 1.161 2016/05/18 18:20:41 roberto Exp $ -->
+<!-- $Id: manual.of,v 1.162 2016/05/30 15:57:03 roberto Exp $ -->
 
 
 
@@ -1179,7 +1179,7 @@ and the system file functions may have problems with
 some control characters.
 So, it is safer to represent
 non-text data as a quoted literal with
-explicit escape sequences for non-text characters.
+explicit escape sequences for the non-text characters.
 
 
 <p>
@@ -1214,7 +1214,9 @@ plus an optional binary exponent,
 marked by a letter '<code>p</code>' or '<code>P</code>'.
 A numeric constant with a radix point or an exponent 
 denotes a float;
-otherwise it denotes an integer.
+otherwise,
+if its value fits in an integer,
+it denotes an integer.
 Examples of valid integer constants are
 
 <pre>
@@ -10898,7 +10900,7 @@ and LiteralString, see <a href="#3.1">&sect;3.1</a>.)
 
 <P CLASS="footer">
 Last update:
-Wed May 18 18:55:35 BRT 2016
+Mon May 30 13:11:08 BRT 2016
 </P>
 <!--
 Last change: revised for Lua 5.3.3
