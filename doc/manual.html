@@ -35,7 +35,7 @@ Freely available under the terms of the
 <!-- ====================================================================== -->
 <p>
 
-<!-- $Id: manual.of,v 1.166 2016/12/22 15:46:25 roberto Exp $ -->
+<!-- $Id: manual.of,v 1.167 2017/01/09 15:18:11 roberto Exp $ -->
 
 
 
@@ -2165,8 +2165,9 @@ For instance, the table <code>{10, 20, 30, 40, 50}</code> is a sequence,
 as it has only one border (5).
 The table <code>{10, 20, 30, nil, 50}</code> has two borders (3 and 5),
 and therefore it is not a sequence.
-The table <code>{nil, 20, 30, nil, 50, nil}</code> has three borders (0, 3 and 5),
-so it also is not a sequence.
+The table <code>{nil, 20, 30, nil, nil, 60, nil}</code>
+has three borders (0, 3, and 6),
+so it is not a sequence, too.
 The table <code>{}</code> is a sequence with border 0.
 Note that non-natural keys do not interfere
 with whether a table is a sequence.
@@ -2182,6 +2183,12 @@ When <code>t</code> is not a sequence,
 the internal representation of the table,
 which in turn can depend on how the table was populated and
 the memory addresses of its non-numeric keys.)
+
+
+<p>
+The computation of the length of a table
+has a guaranteed worst time of <em>O(log n)</em>,
+where <em>n</em> is the largest natural key in the table.
 
 
 <p>
@@ -4340,7 +4347,7 @@ The maximum value for <code>n</code> is 255.
 
 <p>
 When <code>n</code> is zero,
-this function creates a <em>light N{C function}</em>,
+this function creates a <em>light C&nbsp;function</em>,
 which is just a pointer to the C&nbsp;function.
 In that case, it never raises a memory error.
 
@@ -10968,7 +10975,7 @@ and LiteralString, see <a href="#3.1">&sect;3.1</a>.)
 
 <P CLASS="footer">
 Last update:
-Thu Dec 22 18:22:25 BRST 2016
+Mon Jan  9 13:30:53 BRST 2017
 </P>
 <!--
 Last change: revised for Lua 5.3.4
