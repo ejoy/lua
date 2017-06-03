@@ -33,7 +33,73 @@
 #include "lvm.h"
 #include "lzio.h"
 
+#ifdef PROFILE_LUA
+/* profile timer */
 
+#include <time.h>
+
+#if defined(__APPLE__)
+#include <mach/task.h>
+#include <mach/mach.h>
+#endif
+
+#define NANOSEC 1000000000
+#define MICROSEC 1000000
+
+// #define DEBUG_LOG
+
+static double
+get_time() {
+#if  !defined(__APPLE__)
+	struct timespec ti;
+	clock_gettime(CLOCK_THREAD_CPUTIME_ID, &ti);
+
+	int sec = ti.tv_sec & 0xffff;
+	int nsec = ti.tv_nsec;
+
+	return (double)sec + (double)nsec / NANOSEC;
+#else
+	struct task_thread_times_info aTaskInfo;
+	mach_msg_type_number_t aTaskInfoCount = TASK_THREAD_TIMES_INFO_COUNT;
+	if (KERN_SUCCESS != task_info(mach_task_self(), TASK_THREAD_TIMES_INFO, (task_info_t )&aTaskInfo, &aTaskInfoCount)) {
+		return 0;
+	}
+
+	int sec = aTaskInfo.user_time.seconds & 0xffff;
+	int msec = aTaskInfo.user_time.microseconds;
+
+	return (double)sec + (double)msec / MICROSEC;
+#endif
+}
+
+static void
+profile_checkpoint(lua_State *L, int inlua) {
+	global_State *g = G(L);
+	if (g->profile_start < 0) {
+		// start
+		g->profile_start = get_time();
+		g->profile_checkpoint = g->profile_start;
+		g->profile_inlua = inlua;
+	} else {
+		double ct = get_time();
+		double ti = ct - g->profile_checkpoint;
+		g->profile_checkpoint = ct;
+		if (g->profile_inlua) {
+			g->profile_ltime += ti;
+		} else {
+			g->profile_ctime += ti;
+		}
+		g->profile_inlua = inlua;
+	}
+}
+
+#define CHECKPOINT(L,inlua) if (!G(L)->profile_enable) {} else { profile_checkpoint(L, inlua); }
+
+#else
+
+#define CHECKPOINT(L,inlua)
+
+#endif
 
 #define errorstatus(s)	((s) > LUA_YIELD)
 
@@ -431,6 +497,7 @@ int luaD_precall (lua_State *L, StkId func, int nresults) {
       if (L->hookmask & LUA_MASKCALL)
         luaD_hook(L, LUA_HOOKCALL, -1);
       lua_unlock(L);
+      CHECKPOINT(L, 0);
       n = (*f)(L);  /* do the actual call */
       lua_lock(L);
       api_checknelems(L, n);
@@ -495,8 +562,11 @@ static void stackerror (lua_State *L) {
 void luaD_call (lua_State *L, StkId func, int nResults) {
   if (++L->nCcalls >= LUAI_MAXCCALLS)
     stackerror(L);
-  if (!luaD_precall(L, func, nResults))  /* is a Lua function? */
+  if (!luaD_precall(L, func, nResults)) {  /* is a Lua function? */
+    CHECKPOINT(L,1);
     luaV_execute(L);  /* call it */
+    CHECKPOINT(L,0);
+  }
   L->nCcalls--;
 }
 
@@ -530,6 +600,7 @@ static void finishCcall (lua_State *L, int status) {
      handled */
   adjustresults(L, ci->nresults);
   lua_unlock(L);
+  CHECKPOINT(L, 0);
   n = (*ci->u.c.k)(L, status, ci->u.c.ctx);  /* call continuation function */
   lua_lock(L);
   api_checknelems(L, n);
@@ -553,6 +624,7 @@ static void unroll (lua_State *L, void *ud) {
       finishCcall(L, LUA_YIELD);  /* complete its execution */
     else {  /* Lua function */
       luaV_finishOp(L);  /* finish interrupted instruction */
+      CHECKPOINT(L,1);
       luaV_execute(L);  /* execute down to higher C 'boundary' */
     }
   }
@@ -621,16 +693,19 @@ static void resume (lua_State *L, void *ud) {
   StkId firstArg = L->top - n;  /* first argument */
   CallInfo *ci = L->ci;
   if (L->status == LUA_OK) {  /* starting a coroutine? */
-    if (!luaD_precall(L, firstArg - 1, LUA_MULTRET))  /* Lua function? */
+    if (!luaD_precall(L, firstArg - 1, LUA_MULTRET)) { /* Lua function? */
+      CHECKPOINT(L,1);
       luaV_execute(L);  /* call it */
+    }
   }
   else {  /* resuming from previous yield */
     lua_assert(L->status == LUA_YIELD);
     L->status = LUA_OK;  /* mark that it is running (again) */
     ci->func = restorestack(L, ci->extra);
-    if (isLua(ci))  /* yielded inside a hook? */
+    if (isLua(ci)) {  /* yielded inside a hook? */
+      CHECKPOINT(L,1);
       luaV_execute(L);  /* just continue running Lua code */
-    else {  /* 'common' yield */
+    } else {  /* 'common' yield */
       if (ci->u.c.k != NULL) {  /* does it have a continuation function? */
         lua_unlock(L);
         n = (*ci->u.c.k)(L, LUA_YIELD, ci->u.c.ctx); /* call continuation */

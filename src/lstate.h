@@ -13,6 +13,8 @@
 #include "ltm.h"
 #include "lzio.h"
 
+#define PROFILE_LUA
+
 
 /*
 
@@ -151,6 +153,14 @@ typedef struct global_State {
   TString *tmname[TM_N];  /* array with tag-method names */
   struct Table *mt[LUA_NUMTAGS];  /* metatables for basic types */
   TString *strcache[STRCACHE_N][STRCACHE_M];  /* cache for strings in API */
+#ifdef PROFILE_LUA
+  double profile_ltime;
+  double profile_ctime;
+  double profile_checkpoint;
+  double profile_start;
+  int profile_inlua;
+  int profile_enable;
+#endif
 } global_State;
 
 

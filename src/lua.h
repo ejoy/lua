@@ -277,6 +277,15 @@ LUA_API int   (lua_pcallk) (lua_State *L, int nargs, int nresults, int errfunc,
                             lua_KContext ctx, lua_KFunction k);
 #define lua_pcall(L,n,r,f)	lua_pcallk(L, (n), (r), (f), 0, NULL)
 
+struct lua_profile {
+	double stime;
+	double ltime;
+	double ctime;
+	size_t mem;
+};
+
+LUA_API int (lua_pcallt) (lua_State *L, int nargs, int nresults, int errfunc, struct lua_profile *p);
+
 LUA_API int   (lua_load) (lua_State *L, lua_Reader reader, void *dt,
                           const char *chunkname, const char *mode);
 

@@ -29,7 +29,30 @@
 #include "lundump.h"
 #include "lvm.h"
 
+#ifdef PROFILE_LUA
+/* profile timer */
 
+LUA_API int
+lua_pcallt (lua_State *L, int nargs, int nresults, int errfunc, struct lua_profile *p) {
+	global_State *g = G(L);
+	g->profile_ltime = 0;
+	g->profile_ctime = 0;
+	g->profile_inlua = 0;
+	g->profile_start = -1;
+	g->profile_checkpoint = 0;
+	g->profile_enable = 1;
+	int r = lua_pcall(L, nargs, nresults, errfunc);
+	g->profile_enable = 0;
+
+	p->ltime = g->profile_ltime;
+	p->ctime = g->profile_ctime;
+	p->stime = g->profile_start;
+	p->mem = g->totalbytes;
+
+	return r;
+}
+
+#endif
 
 const char lua_ident[] =
   "$LuaVersion: " LUA_COPYRIGHT " $"
