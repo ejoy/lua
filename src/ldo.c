@@ -499,6 +499,7 @@ int luaD_precall (lua_State *L, StkId func, int nresults) {
       lua_unlock(L);
       CHECKPOINT(L, 0);
       n = (*f)(L);  /* do the actual call */
+      CHECKPOINT(L, 1);
       lua_lock(L);
       api_checknelems(L, n);
       luaD_poscall(L, ci, L->top - n, n);
@@ -602,6 +603,7 @@ static void finishCcall (lua_State *L, int status) {
   lua_unlock(L);
   CHECKPOINT(L, 0);
   n = (*ci->u.c.k)(L, status, ci->u.c.ctx);  /* call continuation function */
+  CHECKPOINT(L, 1);
   lua_lock(L);
   api_checknelems(L, n);
   luaD_poscall(L, ci, L->top - n, n);  /* finish 'luaD_precall' */
