@@ -108,6 +108,7 @@ profile_checkfunction(lua_State *L, lua_CFunction f, int on) {
 	double ti = get_time();
 	if (on) {
 		pc->start = ti;
+		++pc->tick;
 	} else {
 		pc->time += ti - pc->start;
 	}

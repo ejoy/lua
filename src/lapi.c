@@ -53,23 +53,27 @@ lua_pcallt (lua_State *L, int nargs, int nresults, int errfunc, struct lua_profi
 }
 
 LUA_API double
-lua_profile (lua_State *L, int n, lua_CFunction *f, double *t) {
+lua_profile(lua_State *L, int n, struct lua_funcprofile *fp) {
 	int i,j;
 	for (i=0;i<n;i++) {
-		f[i] = NULL;
-		t[i] = 0;
+		fp[i].f = NULL;
+		fp[i].time = 0;
+		fp[i].tick = 0;
 	}
 	global_State *g = G(L);
 	for (i=0;i<PROFILE_CFUNCTION_SIZE;i++) {
 		struct profile_cfunction *pc = &g->profile_cfunc[i];
 		if (pc->f) {
 			for (j=0;j<n;j++) {
-				if (pc->time > t[j]) {
-					f[j] = pc->f;
-					t[j] = pc->time;
+				if (pc->time > fp[j].time) {
+					fp[j].f = pc->f;
+					fp[j].time = pc->time;
+					fp[j].tick = pc->tick;
 					break;
 				}
 			}
+			pc->time = 0;
+			pc->tick = 0;
 		}
 	}
 	double ti = g->profile_lastcheck - g->profile_ccp;

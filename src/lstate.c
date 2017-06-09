@@ -333,6 +333,8 @@ LUA_API lua_State *lua_newstate (lua_Alloc f, void *ud) {
   g->profile_ccp = 0;
   for (i=0; i< PROFILE_CFUNCTION_SIZE; i++) {
     g->profile_cfunc[i].f = NULL;
+	g->profile_cfunc[i].time = 0;
+	g->profile_cfunc[i].tick = 0;
   }
 #endif
   for (i=0; i < LUA_NUMTAGS; i++) g->mt[i] = NULL;

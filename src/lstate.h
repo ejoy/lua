@@ -119,6 +119,7 @@ typedef struct CallInfo {
 struct profile_cfunction {
   double time;
   double start;
+  int tick;
   lua_CFunction f;
 };
 
