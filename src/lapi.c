@@ -61,6 +61,7 @@ lua_profile(lua_State *L, int n, struct lua_funcprofile *fp) {
 		fp[i].tick = 0;
 	}
 	global_State *g = G(L);
+	double total = 0;
 	for (i=0;i<PROFILE_CFUNCTION_SIZE;i++) {
 		struct profile_cfunction *pc = &g->profile_cfunc[i];
 		if (pc->f) {
@@ -72,13 +73,13 @@ lua_profile(lua_State *L, int n, struct lua_funcprofile *fp) {
 					break;
 				}
 			}
+			total += pc->time;
 			pc->time = 0;
 			pc->tick = 0;
 		}
 	}
-	double ti = g->profile_lastcheck - g->profile_ccp;
 	g->profile_ccp = g->profile_lastcheck;
-	return ti;
+	return total;
 }
 
 #endif
