@@ -285,6 +285,7 @@ struct lua_profile {
 };
 
 LUA_API int (lua_pcallt) (lua_State *L, int nargs, int nresults, int errfunc, struct lua_profile *p);
+LUA_API double (lua_profile) (lua_State *L, int n, lua_CFunction *f, double *t);
 
 LUA_API int   (lua_load) (lua_State *L, lua_Reader reader, void *dt,
                           const char *chunkname, const char *mode);

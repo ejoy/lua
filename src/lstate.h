@@ -114,6 +114,15 @@ typedef struct CallInfo {
 #define setoah(st,v)	((st) = ((st) & ~CIST_OAH) | (v))
 #define getoah(st)	((st) & CIST_OAH)
 
+#ifdef PROFILE_LUA
+
+struct profile_cfunction {
+  double time;
+  double start;
+  lua_CFunction f;
+};
+
+#endif
 
 /*
 ** 'global state', shared by all threads of this state
@@ -160,6 +169,10 @@ typedef struct global_State {
   double profile_start;
   int profile_inlua;
   int profile_enable;
+#define PROFILE_CFUNCTION_SIZE 4096
+  double profile_ccp;
+  double profile_lastcheck;
+  struct profile_cfunction profile_cfunc[PROFILE_CFUNCTION_SIZE];
 #endif
 } global_State;
 

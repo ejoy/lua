@@ -330,6 +330,10 @@ LUA_API lua_State *lua_newstate (lua_Alloc f, void *ud) {
   g->gcstepmul = LUAI_GCMUL;
 #ifdef PROFILE_LUA
   g->profile_enable = 0;
+  g->profile_ccp = 0;
+  for (i=0; i< PROFILE_CFUNCTION_SIZE; i++) {
+    g->profile_cfunc[i].f = NULL;
+  }
 #endif
   for (i=0; i < LUA_NUMTAGS; i++) g->mt[i] = NULL;
   if (luaD_rawrunprotected(L, f_luaopen, NULL) != LUA_OK) {

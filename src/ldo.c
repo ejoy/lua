@@ -93,11 +93,34 @@ profile_checkpoint(lua_State *L, int inlua) {
 	}
 }
 
+static void
+profile_checkfunction(lua_State *L, lua_CFunction f, int on) {
+	global_State *g = G(L);
+	uintptr_t df = (uintptr_t)f;
+	df >>= 3;
+	int hash = ((df >> 3) ^ (df >> 19) ^ (df & 7)) % PROFILE_CFUNCTION_SIZE;
+	struct profile_cfunction * pc = &g->profile_cfunc[hash];
+	if (pc->f == NULL) {
+		pc->f = f;
+	} else if (pc->f != f) {
+		return;
+	}
+	double ti = get_time();
+	if (on) {
+		pc->start = ti;
+	} else {
+		pc->time += ti - pc->start;
+	}
+	g->profile_lastcheck = ti;
+}
+
 #define CHECKPOINT(L,inlua) if (!G(L)->profile_enable) {} else { profile_checkpoint(L, inlua); }
+#define CHECKFUNCTION(L, f, on) if (!G(L)->profile_enable) {} else { profile_checkfunction(L, f, on); }
 
 #else
 
 #define CHECKPOINT(L,inlua)
+#define CHECKFUNCTION(L, f, on)
 
 #endif
 
@@ -498,7 +521,9 @@ int luaD_precall (lua_State *L, StkId func, int nresults) {
         luaD_hook(L, LUA_HOOKCALL, -1);
       lua_unlock(L);
       CHECKPOINT(L, 0);
+      CHECKFUNCTION(L, f, 1);
       n = (*f)(L);  /* do the actual call */
+      CHECKFUNCTION(L, f, 0);
       CHECKPOINT(L, 1);
       lua_lock(L);
       api_checknelems(L, n);
