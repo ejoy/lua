@@ -54,7 +54,7 @@ lua_pcallt (lua_State *L, int nargs, int nresults, int errfunc, struct lua_profi
 
 LUA_API double
 lua_profile(lua_State *L, int n, struct lua_funcprofile *fp) {
-	int i,j;
+	int i,j,k;
 	for (i=0;i<n;i++) {
 		fp[i].f = NULL;
 		fp[i].time = 0;
@@ -66,10 +66,18 @@ lua_profile(lua_State *L, int n, struct lua_funcprofile *fp) {
 		struct profile_cfunction *pc = &g->profile_cfunc[i];
 		if (pc->f) {
 			for (j=0;j<n;j++) {
-				if (pc->time > fp[j].time) {
-					fp[j].f = pc->f;
-					fp[j].time = pc->time;
-					fp[j].tick = pc->tick;
+				double min = fp[j].time;
+				if (pc->time > min) {
+					int min_id = j;
+					for (k=j+1;k<n;k++) {
+						if (fp[k].time < min) {
+							min = fp[k].time;
+							min_id = k;
+						}
+					}
+					fp[min_id].f = pc->f;
+					fp[min_id].time = pc->time;
+					fp[min_id].tick = pc->tick;
 					break;
 				}
 			}
