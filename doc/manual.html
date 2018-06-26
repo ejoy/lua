@@ -19,7 +19,7 @@ by Roberto Ierusalimschy, Luiz Henrique de Figueiredo, Waldemar Celes
 
 <P>
 <SMALL>
-Copyright &copy; 2015&ndash;2017 Lua.org, PUC-Rio.
+Copyright &copy; 2015&ndash;2018 Lua.org, PUC-Rio.
 Freely available under the terms of the
 <a href="http://www.lua.org/license.html">Lua license</a>.
 </SMALL>
@@ -35,7 +35,7 @@ Freely available under the terms of the
 <!-- ====================================================================== -->
 <p>
 
-<!-- $Id: manual.of,v 1.167 2017/01/09 15:18:11 roberto Exp $ -->
+<!-- $Id: manual.of,v 1.167.1.1 2017/05/08 18:18:34 roberto Exp $ -->
 
 
 
@@ -203,8 +203,8 @@ even those that do not support threads natively.
 
 <p>
 The type <em>table</em> implements associative arrays,
-that is, arrays that can be indexed not only with numbers,
-but with any Lua value except <b>nil</b> and NaN.
+that is, arrays that can have as indices not only numbers,
+but any Lua value except <b>nil</b> and NaN.
 (<em>Not a Number</em> is a special value used to represent
 undefined or unrepresentable numerical results, such as <code>0/0</code>.)
 Tables can be <em>heterogeneous</em>;
@@ -400,6 +400,8 @@ with the event name prefixed by two underscores;
 the corresponding values are called <em>metamethods</em>.
 In the previous example, the key is "<code>__add</code>"
 and the metamethod is the function that performs the addition.
+Unless stated otherwise,
+metamethods should be function values.
 
 
 <p>
@@ -597,7 +599,7 @@ it is also slower than a real <code>__le</code> metamethod.)
 </li>
 
 <li><b><code>__index</code>: </b>
-The indexing access <code>table[key]</code>.
+The indexing access operation <code>table[key]</code>.
 This event happens when <code>table</code> is not a table or
 when <code>key</code> is not present in <code>table</code>.
 The metamethod is looked up in <code>table</code>.
@@ -1276,13 +1278,8 @@ Square brackets are used to index a table:
 <pre>
 	var ::= prefixexp &lsquo;<b>[</b>&rsquo; exp &lsquo;<b>]</b>&rsquo;
 </pre><p>
-The meaning of accesses to table fields can be changed via metatables.
-An access to an indexed variable <code>t[i]</code> is equivalent to
-a call <code>gettable_event(t,i)</code>.
-(See <a href="#2.4">&sect;2.4</a> for a complete description of the
-<code>gettable_event</code> function.
-This function is not defined or callable in Lua.
-We use it here only for explanatory purposes.)
+The meaning of accesses to table fields can be changed via metatables
+(see <a href="#2.4">&sect;2.4</a>).
 
 
 <p>
@@ -1477,20 +1474,15 @@ cyclically permutes the values of <code>x</code>, <code>y</code>, and <code>z</c
 
 
 <p>
-The meaning of assignments to global variables
-and table fields can be changed via metatables.
-An assignment to an indexed variable <code>t[i] = val</code> is equivalent to
-<code>settable_event(t,i,val)</code>.
-(See <a href="#2.4">&sect;2.4</a> for a complete description of the
-<code>settable_event</code> function.
-This function is not defined or callable in Lua.
-We use it here only for explanatory purposes.)
-
-
-<p>
 An assignment to a global name <code>x = val</code>
 is equivalent to the assignment
 <code>_ENV.x = val</code> (see <a href="#2.2">&sect;2.2</a>).
+
+
+<p>
+The meaning of assignments to table fields and
+global variables (which are actually table fields, too)
+can be changed via metatables (see <a href="#2.4">&sect;2.4</a>).
 
 
 
@@ -2039,9 +2031,12 @@ two objects are considered equal only if they are the same object.
 Every time you create a new object
 (a table, userdata, or thread),
 this new object is different from any previously existing object.
-Closures with the same reference are always equal.
+A closure is always equal to itself.
 Closures with any detectable difference
 (different behavior, different definition) are always different.
+Closures created at different times but no detectable differences
+may be classified as equal or not
+(depending on internal cashing details).
 
 
 <p>
@@ -10551,7 +10546,8 @@ The options are:
 
 <ul>
 <li><b><code>-e <em>stat</em></code>: </b> executes string <em>stat</em>;</li>
-<li><b><code>-l <em>mod</em></code>: </b> "requires" <em>mod</em>;</li>
+<li><b><code>-l <em>mod</em></code>: </b> "requires" <em>mod</em> and assigns the
+  result to global @<em>mod</em>;</li>
 <li><b><code>-i</code>: </b> enters interactive mode after running <em>script</em>;</li>
 <li><b><code>-v</code>: </b> prints version information;</li>
 <li><b><code>-E</code>: </b> ignores environment variables;</li>
@@ -10973,12 +10969,13 @@ and LiteralString, see <a href="#3.1">&sect;3.1</a>.)
 
 
 
+
 <P CLASS="footer">
 Last update:
-Mon Jan  9 13:30:53 BRST 2017
+Mon Jun 18 22:58:52 -03 2018
 </P>
 <!--
-Last change: revised for Lua 5.3.4
+Last change: revised for Lua 5.3.5
 -->
 
 </body></html>
