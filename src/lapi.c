@@ -1043,7 +1043,6 @@ static void cloneproto (lua_State *L, Proto *f, const Proto *src) {
     if (sharedk) {
       luaM_freearray(L, f->k, n);
       f->k = src->sp->k;
-      src->sp->sharedk = 1;
     }
   }
   n = src->sp->sizep;
