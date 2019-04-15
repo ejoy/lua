@@ -36,14 +36,30 @@
 LUAI_FUNC unsigned int luaS_hash (const char *str, size_t l, unsigned int seed);
 LUAI_FUNC unsigned int luaS_hashlongstr (TString *ts);
 LUAI_FUNC int luaS_eqlngstr (TString *a, TString *b);
-LUAI_FUNC void luaS_resize (lua_State *L, int newsize);
 LUAI_FUNC void luaS_clearcache (global_State *g);
 LUAI_FUNC void luaS_init (lua_State *L);
-LUAI_FUNC void luaS_remove (lua_State *L, TString *ts);
 LUAI_FUNC Udata *luaS_newudata (lua_State *L, size_t s);
 LUAI_FUNC TString *luaS_newlstr (lua_State *L, const char *str, size_t l);
 LUAI_FUNC TString *luaS_new (lua_State *L, const char *str);
 LUAI_FUNC TString *luaS_createlngstrobj (lua_State *L, size_t l);
 
+#define ENABLE_SHORT_STRING_TABLE
+
+struct ssm_info {
+	int total;
+	int longest;
+	int slots;
+	size_t size;
+	double variance;
+};
+
+LUA_API void luaS_initssm();
+LUA_API void luaS_exitssm();
+LUA_API void luaS_infossm(struct ssm_info *info);
+LUA_API int luaS_collectssm();
+
+LUAI_FUNC void luaS_mark(global_State *g, TString *s);
+LUAI_FUNC void luaS_fix(global_State *g, TString *s);
+LUAI_FUNC void luaS_collect(global_State *g, int closed);
 
 #endif

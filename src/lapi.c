@@ -28,6 +28,7 @@
 #include "ltm.h"
 #include "lundump.h"
 #include "lvm.h"
+#include "lfunc.h"
 
 
 
@@ -1012,6 +1013,32 @@ LUA_API int lua_load (lua_State *L, lua_Reader reader, void *data,
   return status;
 }
 
+LUA_API void lua_clonefunction (lua_State *L, const void * fp) {
+  LClosure *cl;
+  LClosure *f = cast(LClosure *, fp);
+  lua_lock(L);
+  if (f->p->l_G == G(L)) {
+    setclLvalue(L,L->top,f);
+    api_incr_top(L);
+    lua_unlock(L);
+    return;
+  }
+  cl = luaF_newLclosure(L,f->nupvalues);
+  setclLvalue(L,L->top,cl);
+  api_incr_top(L);
+  cl->p = f->p;
+  luaF_initupvals(L, cl);
+
+  if (cl->nupvalues >= 1) {  /* does it have an upvalue? */
+    /* get global table from registry */
+    Table *reg = hvalue(&G(L)->l_registry);
+    const TValue *gt = luaH_getint(reg, LUA_RIDX_GLOBALS);
+    /* set global table as 1st upvalue of 'f' (may be LUA_ENV) */
+    setobj(L, cl->upvals[0]->v, gt);
+    luaC_upvalbarrier(L, cl->upvals[0]);
+  }
+  lua_unlock(L);
+}
 
 LUA_API int lua_dump (lua_State *L, lua_Writer writer, void *data, int strip) {
   int status;

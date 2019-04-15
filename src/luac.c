@@ -21,6 +21,7 @@
 #include "lobject.h"
 #include "lstate.h"
 #include "lundump.h"
+#include "lstring.h"
 
 static void PrintFunction(const Proto* f, int full);
 #define luaU_print	PrintFunction
@@ -192,6 +193,7 @@ static int pmain(lua_State* L)
 int main(int argc, char* argv[])
 {
  lua_State* L;
+ luaS_initssm();
  int i=doargs(argc,argv);
  argc-=i; argv+=i;
  if (argc<=0) usage("no input files given");
@@ -202,6 +204,7 @@ int main(int argc, char* argv[])
  lua_pushlightuserdata(L,argv);
  if (lua_pcall(L,2,0,0)!=LUA_OK) fatal(lua_tostring(L,-1));
  lua_close(L);
+ luaS_exitssm();
  return EXIT_SUCCESS;
 }
 
