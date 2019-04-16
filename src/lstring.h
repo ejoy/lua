@@ -53,10 +53,15 @@ struct ssm_info {
 	double variance;
 };
 
+struct ssm_collect {
+	void *key;
+	int n;
+};
+
 LUA_API void luaS_initssm();
 LUA_API void luaS_exitssm();
 LUA_API void luaS_infossm(struct ssm_info *info);
-LUA_API int luaS_collectssm();
+LUA_API int luaS_collectssm(struct ssm_collect *info);
 
 LUAI_FUNC void luaS_mark(global_State *g, TString *s);
 LUAI_FUNC void luaS_fix(global_State *g, TString *s);

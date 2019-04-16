@@ -9,7 +9,6 @@
 
 #include "lprefix.h"
 
-
 #include <string.h>
 #include <time.h>
 #include "lua.h"
@@ -76,7 +75,7 @@ void luaS_clearcache (global_State *g) {
   int i, j;
   for (i = 0; i < STRCACHE_N; i++)
     for (j = 0; j < STRCACHE_M; j++) {
-    if (iswhite(g->strcache[i][j]))  /* will entry be collected? */
+    if (!isshared(g->strcache[i][j]) && iswhite(g->strcache[i][j]))  /* will entry be collected? */
       g->strcache[i][j] = g->memerrmsg;  /* replace it with something fixed */
     }
 }
@@ -514,9 +513,10 @@ exist(struct ssm_ref *r, TString *s) {
 	return 0;
 }
 
-static void
+static int
 collectref(struct collect_queue * c) {
 	int i;
+	int total = 0;
 	merge_last(c);
 	struct ssm_ref *mark = c->strmark;
 	struct ssm_ref * save = c->strsave;
@@ -532,6 +532,7 @@ collectref(struct collect_queue * c) {
 				if (!exist(mark, s) && !exist(fix, s)) {
 					save->hash[i] = NULL;
 					ATOM_DEC(&s->u.ref);
+					++total;
 				}
 			}
 		}
@@ -542,6 +543,7 @@ collectref(struct collect_queue * c) {
 				--save->asize;
 				save->array[i] = save->array[save->asize];
 				ATOM_DEC(&s->u.ref);
+				++total;
 			} else {
 				++i;
 			}
@@ -552,14 +554,17 @@ collectref(struct collect_queue * c) {
 			TString * s = save->hash[i];
 			if (s) {
 				ATOM_DEC(&s->u.ref);
+				++total;
 			}
 		}
 		for (i=0;i<save->asize;i++) {
 			TString * s = save->array[i];
 			ATOM_DEC(&s->u.ref);
+			++total;
 		}
 		clear_vm(c);
 	}
+	return total;
 }
 
 static int
@@ -725,7 +730,7 @@ expandssm() {
 
 /* call it in a separate thread */
 LUA_API int
-luaS_collectssm() {
+luaS_collectssm(struct ssm_collect *info) {
 	struct shrmap * s = &SSM;
 	if (s->total * 5 / 4 > s->rwslots) {
 		expandssm();
@@ -737,7 +742,13 @@ luaS_collectssm() {
 			s->head = cqueue->next;
 		spinlock_unlock(&s->qlock);
 		if (cqueue) {
-			collectref(cqueue);
+			if (info) {
+				info->key = cqueue->key;
+			}
+			int n = collectref(cqueue);
+			if (info) {
+				info->n = n;
+			}
 		}
 		return 1;
 	}

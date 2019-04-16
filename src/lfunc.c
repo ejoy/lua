@@ -117,6 +117,7 @@ Proto *luaF_newproto (lua_State *L) {
   f->linedefined = 0;
   f->lastlinedefined = 0;
   f->source = NULL;
+  f->l_G = G(L);
   return f;
 }
 
@@ -148,3 +149,21 @@ const char *luaF_getlocalname (const Proto *f, int local_number, int pc) {
   return NULL;  /* not found */
 }
 
+#define MAKESHARED(x) if ((x) && (x)->tt == LUA_TLNGSTR) makeshared(x)
+
+void luaF_shareproto (Proto *f) {
+  int i;
+  if (f == NULL)
+    return;
+  MAKESHARED(f->source);
+  for (i = 0; i < f->sizek; i++) {
+    if (ttype(&f->k[i]) == LUA_TSTRING)
+      MAKESHARED(tsvalue(&f->k[i]));
+  }
+  for (i = 0; i < f->sizeupvalues; i++)
+    MAKESHARED(f->upvalues[i].name);
+  for (i = 0; i < f->sizelocvars; i++)
+    MAKESHARED(f->locvars[i].varname);
+  for (i = 0; i < f->sizep; i++)
+    luaF_shareproto(f->p[i]);
+}

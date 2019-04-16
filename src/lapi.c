@@ -1040,6 +1040,15 @@ LUA_API void lua_clonefunction (lua_State *L, const void * fp) {
   lua_unlock(L);
 }
 
+LUA_API void lua_sharefunction (lua_State *L, int index) {
+  if (!lua_isfunction(L,index) || lua_iscfunction(L,index)) {
+    lua_pushstring(L, "Only Lua function can share");
+    lua_error(L);
+  }
+  LClosure *f = cast(LClosure *, lua_topointer(L, index));
+  luaF_shareproto(f->p);
+}
+
 LUA_API int lua_dump (lua_State *L, lua_Writer writer, void *data, int strip) {
   int status;
   TValue *o;
