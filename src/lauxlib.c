@@ -699,7 +699,7 @@ static int skipcomment (LoadF *lf, int *cp) {
   else return 0;  /* no comment */
 }
 
-static int luaL_loadfilex_ (lua_State *L, const char *filename,
+LUALIB_API int luaL_loadfilex_ (lua_State *L, const char *filename,
                                              const char *mode) {
   LoadF lf;
   int status, readstatus;
