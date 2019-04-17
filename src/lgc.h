@@ -97,7 +97,7 @@
 #define makeshared(x)   l_setbit((x)->marked, SHAREBIT)
 #define otherwhite(g)	((g)->currentwhite ^ WHITEBITS)
 #define isdeadm(ow,m)	(!(((m) ^ WHITEBITS) & (ow)))
-#define isdead(g,v)	(!isshared(v) && isdeadm(otherwhite(g), (v)->marked))
+#define isdead(g,v)	isdeadm(otherwhite(g) | bitmask(SHAREBIT), (v)->marked)
 
 #define changewhite(x)	((x)->marked ^= WHITEBITS)
 #define gray2black(x)	l_setbit((x)->marked, BLACKBIT)

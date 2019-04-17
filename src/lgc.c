@@ -239,7 +239,6 @@ GCObject *luaC_newobj (lua_State *L, int tt, size_t sz) {
 */
 static void reallymarkobject (global_State *g, GCObject *o) {
  reentry:
-  white2gray(o);
   switch (o->tt) {
     case LUA_TSHRSTR: {
       luaS_mark(g, gco2ts(o));
@@ -247,6 +246,7 @@ static void reallymarkobject (global_State *g, GCObject *o) {
     }
     case LUA_TLNGSTR: {
       if (!isshared(o)) {
+        white2gray(o);
         gray2black(o);
         g->GCmemtrav += sizelstring(gco2ts(o)->u.lnglen);
       }
@@ -254,6 +254,7 @@ static void reallymarkobject (global_State *g, GCObject *o) {
     }
     case LUA_TUSERDATA: {
       TValue uvalue;
+      white2gray(o);
       markobjectN(g, gco2u(o)->metatable);  /* mark its metatable */
       gray2black(o);
       g->GCmemtrav += sizeudata(gco2u(o));
@@ -265,25 +266,31 @@ static void reallymarkobject (global_State *g, GCObject *o) {
       break;
     }
     case LUA_TLCL: {
+      white2gray(o);
       linkgclist(gco2lcl(o), g->gray);
       break;
     }
     case LUA_TCCL: {
+      white2gray(o);
       linkgclist(gco2ccl(o), g->gray);
       break;
     }
     case LUA_TTABLE: {
       if (!isshared(o))
+        white2gray(o);
         linkgclist(gco2t(o), g->gray);
       break;
     }
     case LUA_TTHREAD: {
+      white2gray(o);
       linkgclist(gco2th(o), g->gray);
       break;
     }
     case LUA_TPROTO: {
-      if (!isshared(o))
+      if (!isshared(o)) {
+        white2gray(o);
         linkgclist(gco2p(o), g->gray);
+     }
       break;
     }
     default: lua_assert(0); break;
@@ -738,7 +745,7 @@ static GCObject **sweeplist (lua_State *L, GCObject **p, lu_mem count);
 */
 static GCObject **sweeplist (lua_State *L, GCObject **p, lu_mem count) {
   global_State *g = G(L);
-  int ow = otherwhite(g);
+  int ow = otherwhite(g) | bitmask(SHAREBIT);  /* shared object never dead */
   int white = luaC_white(g);  /* current white */
   while (*p != NULL && count-- > 0) {
     GCObject *curr = *p;

@@ -229,6 +229,10 @@ struct shrmap {
 
 static struct shrmap SSM;
 
+#define ADD_SREF(ts) ATOM_INC(&((ts)->u.ref))
+#define DEC_SREF(ts) ATOM_DEC(&((ts)->u.ref))
+#define ZERO_SREF(ts) ((ts)->u.ref == 0)
+
 static struct ssm_ref *
 newref(int size) {
 	/* size must be must be power of 2 */
@@ -249,7 +253,7 @@ newref(int size) {
 }
 
 static void
-expand_ref(struct ssm_ref *r, int addref) {
+expand_ref(struct ssm_ref *r, int changeref) {
 	int hsize = r->hsize * 2;
 	TString ** hash = (TString **)malloc(sizeof(TString *) * hsize);
 	if (hash == NULL)
@@ -275,8 +279,8 @@ expand_ref(struct ssm_ref *r, int addref) {
 				hash[slot] = s;
 			else {
 				--r->nuse;
-				if (addref)
-					ATOM_DEC(&s->u.ref);
+				if (changeref)
+					DEC_SREF(s);
 			}
 			--r->asize;
 			r->array[i] = r->array[r->asize];
@@ -326,7 +330,7 @@ shrink_ref(struct ssm_ref *r) {
 }
 
 static void
-markref(struct ssm_ref *r, TString *s, int addref) {
+markref(struct ssm_ref *r, TString *s, int changeref) {
 	unsigned int h = s->hash;
 	int slot = lmod(h, r->hsize);
 	TString * hs = r->hash[slot];
@@ -334,7 +338,7 @@ markref(struct ssm_ref *r, TString *s, int addref) {
 		return;
 	++r->nuse;
 	if (r->nuse >= r->hsize && r->hsize <= MAX_INT/2) {
-		expand_ref(r, addref);
+		expand_ref(r, changeref);
 		slot = lmod(h, r->hsize);
 		hs = r->hash[slot];
 	}
@@ -396,7 +400,7 @@ remove_duplicate(struct ssm_ref *r, int decref) {
 			--r->asize;
 			r->array[i] = r->array[r->asize];
 			if (decref) {
-				ATOM_DEC(&s->u.ref);
+				DEC_SREF(s);
 			}
 		} else {
 			++i;
@@ -405,7 +409,7 @@ remove_duplicate(struct ssm_ref *r, int decref) {
 }
 
 static struct ssm_ref *
-mergeset(struct ssm_ref *set, struct ssm_ref * rset, int addref) {
+mergeset(struct ssm_ref *set, struct ssm_ref * rset, int changeref) {
 	if (set == NULL)
 		return rset;
 	else if (rset == NULL)
@@ -414,7 +418,7 @@ mergeset(struct ssm_ref *set, struct ssm_ref * rset, int addref) {
 	if (total * 2 <= set->hsize) {
 		shrink_ref(set);
 	} else if (total > set->hsize) {
-		expand_ref(set, addref);
+		expand_ref(set, changeref);
 	}
 	int i;
 	for (i=0;i<rset->hsize;i++) {
@@ -428,7 +432,7 @@ mergeset(struct ssm_ref *set, struct ssm_ref * rset, int addref) {
 		insert_ref(set, s);
 	}
 	delete_ref(rset);
-	remove_duplicate(set, addref);
+	remove_duplicate(set, changeref);
 	return set;
 }
 
@@ -531,7 +535,7 @@ collectref(struct collect_queue * c) {
 			if (s) {
 				if (!exist(mark, s) && !exist(fix, s)) {
 					save->hash[i] = NULL;
-					ATOM_DEC(&s->u.ref);
+					DEC_SREF(s);
 					++total;
 				}
 			}
@@ -542,7 +546,7 @@ collectref(struct collect_queue * c) {
 			if (!exist(mark, s) && !exist(fix, s)) {
 				--save->asize;
 				save->array[i] = save->array[save->asize];
-				ATOM_DEC(&s->u.ref);
+				DEC_SREF(s);
 				++total;
 			} else {
 				++i;
@@ -553,13 +557,13 @@ collectref(struct collect_queue * c) {
 		for (i=0;i<save->hsize;i++) {
 			TString * s = save->hash[i];
 			if (s) {
-				ATOM_DEC(&s->u.ref);
+				DEC_SREF(s);
 				++total;
 			}
 		}
 		for (i=0;i<save->asize;i++) {
 			TString * s = save->array[i];
-			ATOM_DEC(&s->u.ref);
+			DEC_SREF(s);
 			++total;
 		}
 		clear_vm(c);
@@ -675,12 +679,17 @@ shrstr_rehash(struct shrmap *s, int slotid) {
 		TString *str = slot->str;
 		while (str) {
 			TString * next = (TString *)str->next;
-			int newslotid = lmod(str->hash, s->rwslots);
-			struct shrmap_slot *newslot = &s->readwrite[newslotid];
-			rwlock_wlock(&newslot->lock);
-				str->next = (GCObject *)newslot->str;
-				newslot->str = str;
-			rwlock_wunlock(&newslot->lock);
+			if (ZERO_SREF(str)) {
+				free(str);
+				ATOM_DEC(&SSM.total);
+			} else {
+				int newslotid = lmod(str->hash, s->rwslots);
+				struct shrmap_slot *newslot = &s->readwrite[newslotid];
+				rwlock_wlock(&newslot->lock);
+					str->next = (GCObject *)newslot->str;
+					newslot->str = str;
+				rwlock_wunlock(&newslot->lock);
+			}
 			str = next;
 		}
 
@@ -794,7 +803,7 @@ find_string(struct shrmap_slot * slot, unsigned int h, const char *str, lu_byte 
 		if (ts->hash == h &&
 			ts->shrlen == l &&
 			memcmp(str, ts+1, l) == 0) {
-			ATOM_INC(&ts->u.ref);
+			ADD_SREF(ts);
 			break;
 		}
 		ts = (TString *)ts->next;
@@ -810,10 +819,10 @@ find_and_collect(struct shrmap_slot * slot, unsigned int h, const char *str, lu_
 		if (ts->hash == h &&
 			ts->shrlen == l &&
 			memcmp(str, ts+1, l) == 0) {
-			ATOM_INC(&ts->u.ref);
+			ADD_SREF(ts);
 			break;
 		}
-		if (ts->u.ref == 0) {
+		if (ZERO_SREF(ts)) {
 			*ref = (TString *)ts->next;
 			free(ts);
 			ts = *ref;
