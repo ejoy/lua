@@ -1050,10 +1050,7 @@ LUA_API void lua_sharestring (lua_State *L, int index) {
     luaG_runerror(L, "need a string to share");
 
   TString *ts = (TString *)(str - sizeof(UTString));
-  if(ts->tt == LUA_TLNGSTR)
-    makeshared(ts);
-  else
-    luaS_fix(G(L), ts);
+  luaS_share(ts);
 }
 
 LUA_API int lua_dump (lua_State *L, lua_Writer writer, void *data, int strip) {
