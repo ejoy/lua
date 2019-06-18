@@ -1018,13 +1018,8 @@ LUA_API int lua_load (lua_State *L, lua_Reader reader, void *data,
 LUA_API void lua_clonefunction (lua_State *L, const void * fp) {
   LClosure *cl;
   LClosure *f = cast(LClosure *, fp);
+  api_check(L, isshared(f->p), "Not a shared proto");
   lua_lock(L);
-  if (f->p->l_G == G(L)) {
-    setclLvalue(L,L->top,f);
-    api_incr_top(L);
-    lua_unlock(L);
-    return;
-  }
   cl = luaF_newLclosure(L,f->nupvalues);
   setclLvalue(L,L->top,cl);
   api_incr_top(L);
@@ -1047,6 +1042,18 @@ LUA_API void lua_sharefunction (lua_State *L, int index) {
     luaG_runerror(L, "Only Lua function can share");
   LClosure *f = cast(LClosure *, lua_topointer(L, index));
   luaF_shareproto(f->p);
+}
+
+LUA_API void lua_sharestring (lua_State *L, int index) {
+  const char *str = lua_tostring(L, index);
+  if (str == NULL)
+    luaG_runerror(L, "need a string to share");
+
+  TString *ts = (TString *)(str - sizeof(UTString));
+  if(ts->tt == LUA_TLNGSTR)
+    makeshared(ts);
+  else
+    luaS_fix(G(L), ts);
 }
 
 LUA_API int lua_dump (lua_State *L, lua_Writer writer, void *data, int strip) {

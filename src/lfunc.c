@@ -117,7 +117,6 @@ Proto *luaF_newproto (lua_State *L) {
   f->linedefined = 0;
   f->lastlinedefined = 0;
   f->source = NULL;
-  f->l_G = G(L);
   return f;
 }
 
@@ -155,6 +154,7 @@ void luaF_shareproto (Proto *f) {
   int i;
   if (f == NULL)
     return;
+  makeshared(f);
   MAKESHARED(f->source);
   for (i = 0; i < f->sizek; i++) {
     if (ttnov(&f->k[i]) == LUA_TSTRING)
