@@ -904,6 +904,8 @@ LUA_API int lua_setmetatable (lua_State *L, int objindex) {
   }
   switch (ttype(obj)) {
     case LUA_TTABLE: {
+      if (isshared(hvalue(obj)))
+        luaG_runerror(L, "can't setmetatable to shared table");
       hvalue(obj)->metatable = mt;
       if (mt) {
         luaC_objbarrier(L, gcvalue(obj), mt);
