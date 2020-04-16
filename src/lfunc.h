@@ -64,6 +64,6 @@ LUAI_FUNC void luaF_unlinkupval (UpVal *uv);
 LUAI_FUNC void luaF_freeproto (lua_State *L, Proto *f);
 LUAI_FUNC const char *luaF_getlocalname (const Proto *func, int local_number,
                                          int pc);
-
+LUAI_FUNC void luaF_shareproto (Proto *func);
 
 #endif
