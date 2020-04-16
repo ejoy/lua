@@ -83,6 +83,8 @@
 
 #define WHITEBITS	bit2mask(WHITE0BIT, WHITE1BIT)
 
+#define isshared(x)     testbit((x)->marked, SHAREBIT)
+#define makeshared(x)   l_setbit((x)->marked, SHAREBIT)
 
 #define iswhite(x)      testbits((x)->marked, WHITEBITS)
 #define isblack(x)      testbit((x)->marked, BLACKBIT)
@@ -93,7 +95,7 @@
 
 #define otherwhite(g)	((g)->currentwhite ^ WHITEBITS)
 #define isdeadm(ow,m)	((m) & (ow))
-#define isdead(g,v)	isdeadm(otherwhite(g), (v)->marked)
+#define isdead(g,v)	isdeadm(otherwhite(g) | bitmask(SHAREBIT), (v)->marked)
 
 #define changewhite(x)	((x)->marked ^= WHITEBITS)
 #define nw2black(x)  \
@@ -163,15 +165,15 @@
 
 
 #define luaC_barrier(L,p,v) (  \
-	(iscollectable(v) && isblack(p) && iswhite(gcvalue(v))) ?  \
+	(iscollectable(v) && isblack(p) && iswhite(gcvalue(v)) && !isshared(gcvalue(v))) ?  \
 	luaC_barrier_(L,obj2gco(p),gcvalue(v)) : cast_void(0))
 
 #define luaC_barrierback(L,p,v) (  \
-	(iscollectable(v) && isblack(p) && iswhite(gcvalue(v))) ? \
+	(iscollectable(v) && isblack(p) && iswhite(gcvalue(v)) && !isshared(gcvalue(v))) ? \
 	luaC_barrierback_(L,p) : cast_void(0))
 
 #define luaC_objbarrier(L,p,o) (  \
-	(isblack(p) && iswhite(o)) ? \
+	(isblack(p) && iswhite(o) && !isshared(o)) ? \
 	luaC_barrier_(L,obj2gco(p),obj2gco(o)) : cast_void(0))
 
 LUAI_FUNC void luaC_fix (lua_State *L, GCObject *o);

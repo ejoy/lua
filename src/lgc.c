@@ -290,6 +290,8 @@ GCObject *luaC_newobj (lua_State *L, int tt, size_t sz) {
 ** (only closures can), and a userdata's metatable must be a table.
 */
 static void reallymarkobject (global_State *g, GCObject *o) {
+  if (isshared(o))
+    return;
   switch (o->tt) {
     case LUA_VSHRSTR:
     case LUA_VLNGSTR: {
@@ -810,7 +812,7 @@ static void freeobj (lua_State *L, GCObject *o) {
 static GCObject **sweeplist (lua_State *L, GCObject **p, int countin,
                              int *countout) {
   global_State *g = G(L);
-  int ow = otherwhite(g);
+  int ow = otherwhite(g) | bitmask(SHAREBIT);  /* shared object never dead */
   int i;
   int white = luaC_white(g);  /* current white */
   for (i = 0; *p != NULL && i < countin; i++) {
