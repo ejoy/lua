@@ -83,8 +83,6 @@
 
 #define WHITEBITS	bit2mask(WHITE0BIT, WHITE1BIT)
 
-#define isshared(x)     testbit((x)->marked, SHAREBIT)
-#define makeshared(x)   l_setbit((x)->marked, SHAREBIT)
 
 #define iswhite(x)      testbits((x)->marked, WHITEBITS)
 #define isblack(x)      testbit((x)->marked, BLACKBIT)
@@ -95,7 +93,7 @@
 
 #define otherwhite(g)	((g)->currentwhite ^ WHITEBITS)
 #define isdeadm(ow,m)	((m) & (ow))
-#define isdead(g,v)	isdeadm(otherwhite(g) | bitmask(SHAREBIT), (v)->marked)
+#define isdead(g,v)	isdeadm(otherwhite(g), (v)->marked)
 
 #define changewhite(x)	((x)->marked ^= WHITEBITS)
 #define nw2black(x)  \
@@ -112,12 +110,16 @@
 #define G_OLD		4	/* really old object (not to be visited) */
 #define G_TOUCHED1	5	/* old object touched this cycle */
 #define G_TOUCHED2	6	/* old object touched in previous cycle */
+#define G_SHARED	7	/* object is shared */
 
 #define AGEBITS		7  /* all age bits (111) */
 
 #define getage(o)	((o)->marked & AGEBITS)
 #define setage(o,a)  ((o)->marked = cast_byte(((o)->marked & (~AGEBITS)) | a))
 #define isold(o)	(getage(o) > G_SURVIVAL)
+
+#define isshared(x)     (getage(x) == G_SHARED)
+#define makeshared(x)   setage(x, G_SHARED)
 
 #define changeage(o,f,t)  \
 	check_exp(getage(o) == (f), (o)->marked ^= ((f)^(t)))
