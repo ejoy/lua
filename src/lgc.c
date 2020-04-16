@@ -192,7 +192,7 @@ static int iscleared (global_State *g, const GCObject *o) {
 */
 void luaC_barrier_ (lua_State *L, GCObject *o, GCObject *v) {
   global_State *g = G(L);
-  lua_assert(isblack(o) && iswhite(v) && !isdead(g, v) && !isdead(g, o));
+  lua_assert(isblack(o) && iswhite(v) && !isdead(g, v) && !isdead(g, o) && !isshared(o));
   if (keepinvariant(g)) {  /* must keep invariant? */
     reallymarkobject(g, v);  /* restore invariant */
     if (isold(o)) {
@@ -213,7 +213,7 @@ void luaC_barrier_ (lua_State *L, GCObject *o, GCObject *v) {
 */
 void luaC_barrierback_ (lua_State *L, GCObject *o) {
   global_State *g = G(L);
-  lua_assert(isblack(o) && !isdead(g, o));
+  lua_assert(isblack(o) && !isdead(g, o) && !isshared(o));
   lua_assert(g->gckind != KGC_GEN || (isold(o) && getage(o) != G_TOUCHED1));
   if (getage(o) != G_TOUCHED2)  /* not already in gray list? */
     linkobjgclist(o, g->grayagain);  /* link it in 'grayagain' */
@@ -226,7 +226,8 @@ void luaC_fix (lua_State *L, GCObject *o) {
   global_State *g = G(L);
   lua_assert(g->allgc == o);  /* object must be 1st in 'allgc' list! */
   white2gray(o);  /* they will be gray forever */
-  setage(o, G_OLD);  /* and old forever */
+  if (!isshared(o))
+    setage(o, G_OLD);  /* and old forever */
   g->allgc = o->next;  /* remove object from 'allgc' list */
   o->next = g->fixedgc;  /* link it to 'fixedgc' list */
   g->fixedgc = o;
@@ -266,6 +267,8 @@ GCObject *luaC_newobj (lua_State *L, int tt, size_t sz) {
 ** to avoid barriers, as their values will be revisited by the thread.)
 */
 static void reallymarkobject (global_State *g, GCObject *o) {
+  if (isshared(o))
+    return;
   white2gray(o);
   switch (o->tt) {
     case LUA_VSHRSTR:
@@ -976,7 +979,9 @@ static void setpause (global_State *g);
 static void sweep2old (lua_State *L, GCObject **p) {
   GCObject *curr;
   while ((curr = *p) != NULL) {
-    if (iswhite(curr)) {  /* is 'curr' dead? */
+    if (isshared(curr))
+       p = &curr->next;  /* go to next element */
+    else if (iswhite(curr)) {  /* is 'curr' dead? */
       lua_assert(isdead(G(L), curr));
       *p = curr->next;  /* remove 'curr' from list */
       freeobj(L, curr);  /* erase 'curr' */
@@ -1010,7 +1015,9 @@ static GCObject **sweepgen (lua_State *L, global_State *g, GCObject **p,
   int white = luaC_white(g);
   GCObject *curr;
   while ((curr = *p) != limit) {
-    if (iswhite(curr)) {  /* is 'curr' dead? */
+    if (isshared(curr))
+      p = &curr->next;  /* go to next element */
+    else if (iswhite(curr)) {  /* is 'curr' dead? */
       lua_assert(!isold(curr) && isdead(g, curr));
       *p = curr->next;  /* remove 'curr' from list */
       freeobj(L, curr);  /* erase 'curr' */
