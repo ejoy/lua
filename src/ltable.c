@@ -195,6 +195,8 @@ static int equalkey (const TValue *k1, const Node *n2, int deadok) {
       return fvalue(k1) == fvalueraw(keyval(n2));
     case ctb(LUA_VLNGSTR):
       return luaS_eqlngstr(tsvalue(k1), keystrval(n2));
+    case ctb(LUA_VSHRSTR):
+      return eqshrstr(tsvalue(k1), keystrval(n2));
     default:
       return gcvalue(k1) == gcvalueraw(keyval(n2));
   }
