@@ -2966,8 +2966,18 @@ When you interact with the Lua API,
 you are responsible for ensuring consistency.
 In particular,
 <em>you are responsible for controlling stack overflow</em>.
-You can use the function <a href="#lua_checkstack"><code>lua_checkstack</code></a>
-to ensure that the stack has enough space for pushing new elements.
+When you call any API function,
+you must ensure the stack has enough room to accommodate the results.
+
+
+<p>
+There is one exception to the above rule:
+When you call a Lua function
+without a fixed number of results (see <a href="#lua_call"><code>lua_call</code></a>),
+Lua ensures that the stack has enough space for all results.
+However, it does not ensure any extra space.
+So, before pushing anything on the stack after such a call
+you should use <a href="#lua_checkstack"><code>lua_checkstack</code></a>.
 
 
 <p>
@@ -2978,15 +2988,9 @@ that is, you can safely push up to <code>LUA_MINSTACK</code> values into it.
 <code>LUA_MINSTACK</code> is defined as 20,
 so that usually you do not have to worry about stack space
 unless your code has loops pushing elements onto the stack.
-
-
-<p>
-When you call a Lua function
-without a fixed number of results (see <a href="#lua_call"><code>lua_call</code></a>),
-Lua ensures that the stack has enough space for all results,
-but it does not ensure any extra space.
-So, before pushing anything on the stack after such a call
-you should use <a href="#lua_checkstack"><code>lua_checkstack</code></a>.
+Whenever necessary,
+you can use the function <a href="#lua_checkstack"><code>lua_checkstack</code></a>
+to ensure that the stack has enough space for pushing new elements.
 
 
 
@@ -3062,7 +3066,8 @@ Lua's garbage collection can free or move internal memory
 and then invalidate pointers to internal strings.
 To allow a safe use of these pointers,
 The API guarantees that any pointer to a string in a stack index
-is valid while the value at that index is neither modified nor popped.
+is valid while the string value at that index is not removed from the stack.
+(It can be moved to another index, though.)
 When the index is a pseudo-index (referring to an upvalue),
 the pointer is valid while the corresponding call is active and
 the corresponding upvalue is not modified.
@@ -3282,7 +3287,7 @@ Therefore, if a C&nbsp;function <code>foo</code> calls an API function
 and this API function yields
 (directly or indirectly by calling another function that yields),
 Lua cannot return to <code>foo</code> any more,
-because the <code>longjmp</code> removes its frame from the C stack.
+because the <code>longjmp</code> removes its frame from the C&nbsp;stack.
 
 
 <p>
@@ -3312,7 +3317,7 @@ After the thread resumes,
 it eventually will finish running the callee function.
 However,
 the callee function cannot return to the original function,
-because its frame in the C stack was destroyed by the yield.
+because its frame in the C&nbsp;stack was destroyed by the yield.
 Instead, Lua calls a <em>continuation function</em>,
 which was given as an argument to the callee function.
 As the name implies,
@@ -3451,7 +3456,7 @@ and therefore may raise any errors.
 <p>
 Converts the acceptable index <code>idx</code>
 into an equivalent absolute index
-(that is, one that does not depend on the stack top).
+(that is, one that does not depend on the stack size).
 
 
 
@@ -4647,11 +4652,16 @@ except that it allows the called function to yield (see <a href="#4.5">&sect;4.5
 
 
 <hr><h3><a name="lua_pop"><code>lua_pop</code></a></h3><p>
-<span class="apii">[-n, +0, &ndash;]</span>
+<span class="apii">[-n, +0, <em>e</em>]</span>
 <pre>void lua_pop (lua_State *L, int n);</pre>
 
 <p>
 Pops <code>n</code> elements from the stack.
+
+
+<p>
+This function can run arbitrary code when removing an index
+marked as to-be-closed from the stack.
 
 
 
@@ -5320,7 +5330,7 @@ for the "newindex" event (see <a href="#2.4">&sect;2.4</a>).
 
 
 <hr><h3><a name="lua_settop"><code>lua_settop</code></a></h3><p>
-<span class="apii">[-?, +?, &ndash;]</span>
+<span class="apii">[-?, +?, <em>e</em>]</span>
 <pre>void lua_settop (lua_State *L, int index);</pre>
 
 <p>
@@ -5329,6 +5339,11 @@ and sets the stack top to this index.
 If the new top is greater than the old one,
 then the new elements are filled with <b>nil</b>.
 If <code>index</code> is&nbsp;0, then all stack elements are removed.
+
+
+<p>
+This function can run arbitrary code when removing an index
+marked as to-be-closed from the stack.
 
 
 
@@ -5479,7 +5494,7 @@ as if it was already marked.
 Note that, both in case of errors and of a regular return,
 by the time the <code>__close</code> metamethod runs,
 the C&nbsp;stack was already unwound,
-so that any automatic C variable declared in the calling function
+so that any automatic C&nbsp;variable declared in the calling function
 will be out of scope.
 
 
@@ -6262,24 +6277,6 @@ Only count and line events can yield;
 to yield, a hook function must finish its execution
 calling <a href="#lua_yield"><code>lua_yield</code></a> with <code>nresults</code> equal to zero
 (that is, with no values).
-
-
-
-
-
-<hr><h3><a name="lua_setcstacklimit"><code>lua_setcstacklimit</code></a></h3><p>
-<span class="apii">[-0, +0, &ndash;]</span>
-<pre>int (lua_setcstacklimit) (lua_State *L, unsigned int limit);</pre>
-
-<p>
-Sets a new limit for the C stack.
-This limit controls how deeply nested calls can go in Lua,
-with the intent of avoiding a stack overflow.
-Returns the old limit in case of success,
-or zero in case of error.
-For more details about this function,
-see <a href="#pdf-debug.setcstacklimit"><code>debug.setcstacklimit</code></a>,
-its equivalent in the standard library.
 
 
 
@@ -11281,43 +11278,6 @@ to the userdata <code>u</code> plus a boolean,
 
 
 <p>
-<hr><h3><a name="pdf-debug.setcstacklimit"><code>debug.setcstacklimit (limit)</code></a></h3>
-
-
-<p>
-Sets a new limit for the C stack.
-This limit controls how deeply nested calls can go in Lua,
-with the intent of avoiding a stack overflow.
-A limit too small restricts recursive calls pointlessly;
-a limit too large exposes the interpreter to stack-overflow crashes.
-Unfortunately, there is no way to know a priori
-the maximum safe limit for a platform.
-
-
-<p>
-Each call made from Lua code counts one unit.
-Other operations (e.g., calls made from C to Lua or resuming a coroutine)
-may have a higher cost.
-
-
-<p>
-This function has the following restrictions:
-
-<ul>
-<li>It can only be called from the main coroutine (thread);</li>
-<li>It cannot be called while handling a stack-overflow error;</li>
-<li><code>limit</code> must be less than 40000;</li>
-<li><code>limit</code> cannot be less than the amount of C stack in use.</li>
-</ul><p>
-If a call does not respect some restriction,
-it returns a false value.
-Otherwise,
-the call returns the old limit.
-
-
-
-
-<p>
 <hr><h3><a name="pdf-debug.sethook"><code>debug.sethook ([thread,] hook, mask [, count])</code></a></h3>
 
 
@@ -11948,10 +11908,10 @@ and LiteralString, see <a href="#3.1">&sect;3.1</a>.)
 
 <P CLASS="footer">
 Last update:
-Wed Sep 30 09:46:30 UTC 2020
+Fri Nov 13 15:35:22 UTC 2020
 </P>
 <!--
-Last change: revised for Lua 5.4.1
+Last change: revised for Lua 5.4.2
 -->
 
 </body></html>
