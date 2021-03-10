@@ -937,7 +937,7 @@ LUA_API int lua_setmetatable (lua_State *L, int objindex) {
   }
   switch (ttype(obj)) {
     case LUA_TTABLE: {
-      if (isshared(hvalue(obj)))
+      if (l_unlikely(isshared(hvalue(obj))))
         luaG_runerror(L, "can't setmetatable to shared table");
       hvalue(obj)->metatable = mt;
       if (mt) {
@@ -1134,7 +1134,7 @@ LUA_API void lua_sharestring (lua_State *L, int index) {
 LUA_API void lua_clonetable(lua_State *L, const void * tp) {
   Table *t = cast(Table *, tp);
 
-  if (!isshared(t))
+  if (l_unlikely(!isshared(t)))
     luaG_runerror(L, "Not a shared table");
 
   lua_lock(L);

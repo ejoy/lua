@@ -637,6 +637,8 @@ static Node *getfreepos (Table *t) {
 void luaH_newkey (lua_State *L, Table *t, const TValue *key, TValue *value) {
   Node *mp;
   TValue aux;
+  if (l_unlikely(isshared(t)))
+    luaG_runerror(L, "attempt to change a shared table");
   if (l_unlikely(ttisnil(key)))
     luaG_runerror(L, "table index is nil");
   else if (ttisfloat(key)) {
@@ -784,8 +786,11 @@ void luaH_finishset (lua_State *L, Table *t, const TValue *key,
                                    const TValue *slot, TValue *value) {
   if (isabstkey(slot))
     luaH_newkey(L, t, key, value);
-  else
+  else {
+    if (l_unlikely(isshared(t)))
+      luaG_runerror(L, "attempt to change a shared table");
     setobj2t(L, cast(TValue *, slot), value);
+  }
 }
 
 
@@ -794,26 +799,23 @@ void luaH_finishset (lua_State *L, Table *t, const TValue *key,
 ** barrier and invalidate the TM cache.
 */
 void luaH_set (lua_State *L, Table *t, const TValue *key, TValue *value) {
-  const TValue *slot;
-  if(isshared(t))
-    luaG_runerror(L, "attempt to change a shared table");
-  slot = luaH_get(t, key);
+  const TValue *slot = luaH_get(t, key);
   luaH_finishset(L, t, key, slot, value);
 }
 
 
 void luaH_setint (lua_State *L, Table *t, lua_Integer key, TValue *value) {
-  const TValue *p;
-  if(isshared(t))
-    luaG_runerror(L, "attempt to change a shared table");
-  p = luaH_getint(t, key);
+  const TValue *p = luaH_getint(t, key);
   if (isabstkey(p)) {
     TValue k;
     setivalue(&k, key);
     luaH_newkey(L, t, &k, value);
   }
-  else
+  else {
+    if (l_unlikely(isshared(t)))
+      luaG_runerror(L, "attempt to change a shared table");
     setobj2t(L, cast(TValue *, p), value);
+  }
 }
 
 
