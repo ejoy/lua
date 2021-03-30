@@ -5360,12 +5360,8 @@ If <code>index</code> is&nbsp;0, then all stack elements are removed.
 
 
 <p>
-For compatibility reasons,
-this function may close slots marked as to-be-closed (see <a href="#lua_toclose"><code>lua_toclose</code></a>),
-and therefore it can run arbitrary code.
-You should not rely on this behavior:
-Instead, always close to-be-closed slots explicitly,
-with <a href="#lua_closeslot"><code>lua_closeslot</code></a>, before removing them from the stack.
+This function can run arbitrary code when removing an index
+marked as to-be-closed from the stack.
 
 
 
@@ -5488,21 +5484,24 @@ otherwise, returns <code>NULL</code>.
 
 <p>
 Marks the given index in the stack as a
-to-be-closed "variable" (see <a href="#3.3.8">&sect;3.3.8</a>).
+to-be-closed slot (see <a href="#3.3.8">&sect;3.3.8</a>).
 Like a to-be-closed variable in Lua,
-the value at that index in the stack will be closed
+the value at that slot in the stack will be closed
 when it goes out of scope.
 Here, in the context of a C function,
 to go out of scope means that the running function returns to Lua,
-there is an error,
+or there is an error,
+or the slot is removed from the stack through
+<a href="#lua_settop"><code>lua_settop</code></a> or <a href="#lua_pop"><code>lua_pop</code></a>,
 or there is a call to <a href="#lua_closeslot"><code>lua_closeslot</code></a>.
-An index marked as to-be-closed should neither be removed from the stack
-nor modified before a corresponding call to <a href="#lua_closeslot"><code>lua_closeslot</code></a>.
+A slot marked as to-be-closed should not be removed from the stack
+by any other function in the API except <a href="#lua_settop"><code>lua_settop</code></a> or <a href="#lua_pop"><code>lua_pop</code></a>,
+unless previously deactivated by <a href="#lua_closeslot"><code>lua_closeslot</code></a>.
 
 
 <p>
 This function should not be called for an index
-that is equal to or below an active to-be-closed index.
+that is equal to or below an active to-be-closed slot.
 
 
 <p>
@@ -11925,7 +11924,7 @@ and LiteralString, see <a href="#3.1">&sect;3.1</a>.)
 
 <P CLASS="footer">
 Last update:
-Wed Mar  3 13:05:39 UTC 2021
+Mon Mar 15 13:39:42 UTC 2021
 </P>
 <!--
 Last change: revised for Lua 5.4.3
