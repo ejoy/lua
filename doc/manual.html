@@ -961,11 +961,8 @@ these marks have no effect.
 
 
 <p>
-Finalizers cannot yield.
-Except for that, they can do anything,
-such as raise errors, create new objects,
-or even run the garbage collector.
-However, because they can run in unpredictable times,
+Finalizers cannot yield nor run the garbage collector.
+Because they can run in unpredictable times,
 it is good practice to restrict each finalizer
 to the minimum necessary to properly release
 its associated resource.
@@ -3987,6 +3984,10 @@ Returns the previous mode (<code>LUA_GCGEN</code> or <code>LUA_GCINC</code>).
 </ul><p>
 For more details about these options,
 see <a href="#pdf-collectgarbage"><code>collectgarbage</code></a>.
+
+
+<p>
+This function should not be called by a finalizer.
 
 
 
@@ -7934,6 +7935,10 @@ A zero means to not change that value.
 </ul><p>
 See <a href="#2.5">&sect;2.5</a> for more details about garbage collection
 and some of these options.
+
+
+<p>
+This function should not be called by a finalizer.
 
 
 
@@ -11942,7 +11947,7 @@ and LiteralString, see <a href="#3.1">&sect;3.1</a>.)
 
 <P CLASS="footer">
 Last update:
-Tue Nov 16 18:30:51 UTC 2021
+Tue Dec 21 12:10:31 UTC 2021
 </P>
 <!--
 Last change: revised for Lua 5.4.4
