@@ -1122,7 +1122,7 @@ struct codecache {
 static struct codecache CC;
 
 static void
-clearcache() {
+clearcache(void) {
 	if (CC.L == NULL)
 		return;
 	SPIN_LOCK(&CC)
@@ -1132,9 +1132,12 @@ clearcache() {
 }
 
 static void
-init() {
+init(void) {
 	CC.L = luaL_newstate();
 }
+
+
+void luaL_initcodecache(void);
 
 LUALIB_API void
 luaL_initcodecache(void) {
@@ -1143,13 +1146,15 @@ luaL_initcodecache(void) {
 
 static const void *
 load_proto(const char *key) {
+  lua_State *L;
+  const void * result;
   if (CC.L == NULL)
     return NULL;
   SPIN_LOCK(&CC)
-    lua_State *L = CC.L;
+    L = CC.L;
     lua_pushstring(L, key);
     lua_rawget(L, LUA_REGISTRYINDEX);
-    const void * result = lua_touserdata(L, -1);
+    result = lua_touserdata(L, -1);
     lua_pop(L, 1);
   SPIN_UNLOCK(&CC)
 
@@ -1205,9 +1210,10 @@ static int cache_mode(lua_State *L) {
 		"ON",
 		NULL,
 	};
+	int t,r;
 	if (lua_isnoneornil(L,1)) {
-		int t = lua_rawgetp(L, LUA_REGISTRYINDEX, &cache_key);
-		int r = lua_tointeger(L, -1);
+		t = lua_rawgetp(L, LUA_REGISTRYINDEX, &cache_key);
+		r = lua_tointeger(L, -1);
 		if (t == LUA_TNUMBER) {
 			if (r < 0  || r >= CACHE_ON) {
 				r = CACHE_ON;
@@ -1218,7 +1224,7 @@ static int cache_mode(lua_State *L) {
 		lua_pushstring(L, lst[r]);
 		return 1;
 	}
-	int t = luaL_checkoption(L, 1, "OFF" , lst);
+	t = luaL_checkoption(L, 1, "OFF" , lst);
 	lua_pushinteger(L, t);
 	lua_rawsetp(L, LUA_REGISTRYINDEX, &cache_key);
 	return 0;
@@ -1227,10 +1233,14 @@ static int cache_mode(lua_State *L) {
 LUALIB_API int luaL_loadfilex (lua_State *L, const char *filename,
                                              const char *mode) {
   int level = cache_level(L);
+  const void * proto;
+  lua_State * eL;
+  int err;
+  const void * oldv;
   if (level == CACHE_OFF) {
     return luaL_loadfilex_(L, filename, mode);
   }
-  const void * proto = load_proto(filename);
+  proto = load_proto(filename);
   if (proto) {
     lua_clonefunction(L, proto);
     return LUA_OK;
@@ -1238,12 +1248,12 @@ LUALIB_API int luaL_loadfilex (lua_State *L, const char *filename,
   if (level == CACHE_EXIST) {
     return luaL_loadfilex_(L, filename, mode);
   }
-  lua_State * eL = luaL_newstate();
+  eL = luaL_newstate();
   if (eL == NULL) {
     lua_pushliteral(L, "New state failed");
     return LUA_ERRMEM;
   }
-  int err = luaL_loadfilex_(eL, filename, mode);
+  err = luaL_loadfilex_(eL, filename, mode);
   if (err != LUA_OK) {
     size_t sz = 0;
     const char * msg = lua_tolstring(eL, -1, &sz);
@@ -1253,7 +1263,7 @@ LUALIB_API int luaL_loadfilex (lua_State *L, const char *filename,
   }
   lua_sharefunction(eL, -1);
   proto = lua_topointer(eL, -1);
-  const void * oldv = save_proto(filename, proto);
+  oldv = save_proto(filename, proto);
   if (oldv) {
     lua_close(eL);
     lua_clonefunction(L, oldv);
@@ -1271,6 +1281,8 @@ cache_clear(lua_State *L) {
 	clearcache();
 	return 0;
 }
+
+int luaopen_cache(lua_State *L);
 
 LUAMOD_API int luaopen_cache(lua_State *L) {
 	luaL_Reg l[] = {

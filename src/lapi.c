@@ -1123,16 +1123,18 @@ LUA_API void lua_clonefunction (lua_State *L, const void * fp) {
 }
 
 LUA_API void lua_sharefunction (lua_State *L, int index) {
+  LClosure *f;
   if (!lua_isfunction(L,index) || lua_iscfunction(L,index))
     luaG_runerror(L, "Only Lua function can share");
-  LClosure *f = cast(LClosure *, lua_topointer(L, index));
+  f = cast(LClosure *, lua_topointer(L, index));
   luaF_shareproto(f->p);
 }
 
 LUA_API void lua_sharestring (lua_State *L, int index) {
+  TString *ts;
   if (lua_type(L,index) != LUA_TSTRING)
     luaG_runerror(L, "need a string to share");
-  TString *ts = tsvalue(index2value(L,index));
+  ts = tsvalue(index2value(L,index));
   luaS_share(ts);
 }
 
