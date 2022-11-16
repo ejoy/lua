@@ -1117,7 +1117,7 @@ LUA_API void lua_clonefunction (lua_State *L, const void * fp) {
   api_check(L, isshared(f->p), "Not a shared proto");
   lua_lock(L);
   cl = luaF_newLclosure(L,f->nupvalues);
-  setclLvalue2s(L,L->top,cl);
+  setclLvalue2s(L,L->top.p,cl);
   api_incr_top(L);
   cl->p = f->p;
   luaF_initupvals(L, cl);
@@ -1148,7 +1148,7 @@ LUA_API void lua_clonetable(lua_State *L, const void * tp) {
     luaG_runerror(L, "Not a shared table");
 
   lua_lock(L);
-  sethvalue2s(L, L->top, t);
+  sethvalue2s(L, L->top.p, t);
   api_incr_top(L);
   lua_unlock(L);
 }
