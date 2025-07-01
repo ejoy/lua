@@ -1,7 +1,7 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <HTML>
 <HEAD>
-<TITLE>Lua 5.4 Reference Manual - contents</TITLE>
+<TITLE>Lua 5.5 Reference Manual - contents</TITLE>
 <LINK REL="stylesheet" TYPE="text/css" HREF="lua.css">
 <LINK REL="stylesheet" TYPE="text/css" HREF="index.css">
 <META HTTP-EQUIV="content-type" CONTENT="text/html; charset=iso-8859-1">
@@ -11,7 +11,7 @@
 
 <H1>
 <A HREF="https://www.lua.org/"><IMG SRC="logo.gif" ALT="Lua"></A>
-Lua 5.4 Reference Manual
+Lua 5.5 Reference Manual
 </H1>
 
 <P>
@@ -44,7 +44,7 @@ Freely available under the terms of the
 <LI><A HREF="manual.html#2">2 &ndash; Basic Concepts</A>
 <UL>
 <LI><A HREF="manual.html#2.1">2.1 &ndash; Values and Types</A>
-<LI><A HREF="manual.html#2.2">2.2 &ndash; Environments and the Global Environment</A>
+<LI><A HREF="manual.html#2.2">2.2 &ndash; Scopes, Variables, and Environments</A>
 <LI><A HREF="manual.html#2.3">2.3 &ndash; Error Handling</A>
 <LI><A HREF="manual.html#2.4">2.4 &ndash; Metatables and Metamethods</A>
 <LI><A HREF="manual.html#2.5">2.5 &ndash; Garbage Collection</A>
@@ -69,7 +69,7 @@ Freely available under the terms of the
 <LI><A HREF="manual.html#3.3.4">3.3.4 &ndash; Control Structures</A>
 <LI><A HREF="manual.html#3.3.5">3.3.5 &ndash; For Statement</A>
 <LI><A HREF="manual.html#3.3.6">3.3.6 &ndash; Function Calls as Statements</A>
-<LI><A HREF="manual.html#3.3.7">3.3.7 &ndash; Local Declarations</A>
+<LI><A HREF="manual.html#3.3.7">3.3.7 &ndash; Variable Declarations</A>
 <LI><A HREF="manual.html#3.3.8">3.3.8 &ndash; To-be-closed Variables</A>
 </UL>
 <LI><A HREF="manual.html#3.4">3.4 &ndash; Expressions</A>
@@ -86,10 +86,6 @@ Freely available under the terms of the
 <LI><A HREF="manual.html#3.4.10">3.4.10 &ndash; Function Calls</A>
 <LI><A HREF="manual.html#3.4.11">3.4.11 &ndash; Function Definitions</A>
 <LI><A HREF="manual.html#3.4.12">3.4.12 &ndash; Lists of expressions, multiple results, and adjustment<A>
-
-</UL>
-<LI><A HREF="manual.html#3.5">3.5 &ndash; Visibility Rules</A>
-</UL>
 <P>
 <LI><A HREF="manual.html#4">4 &ndash; The Application Program Interface</A>
 <UL>
@@ -117,20 +113,21 @@ Freely available under the terms of the
 <P>
 <LI><A HREF="manual.html#6">6 &ndash; The Standard Libraries</A>
 <UL>
-<LI><A HREF="manual.html#6.1">6.1 &ndash; Basic Functions</A>
-<LI><A HREF="manual.html#6.2">6.2 &ndash; Coroutine Manipulation</A>
-<LI><A HREF="manual.html#6.3">6.3 &ndash; Modules</A>
-<LI><A HREF="manual.html#6.4">6.4 &ndash; String Manipulation</A>
+<LI><A HREF="manual.html#6.1">6.1 &ndash; Loading the Libraries in C code</A>
+<LI><A HREF="manual.html#6.2">6.2 &ndash; Basic Functions</A>
+<LI><A HREF="manual.html#6.3">6.3 &ndash; Coroutine Manipulation</A>
+<LI><A HREF="manual.html#6.4">6.4 &ndash; Modules</A>
+<LI><A HREF="manual.html#6.5">6.5 &ndash; String Manipulation</A>
 <UL>
-<LI><A HREF="manual.html#6.4.1">6.4.1 &ndash; Patterns</A>
-<LI><A HREF="manual.html#6.4.2">6.4.2 &ndash; Format Strings for Pack and Unpack</A>
+<LI><A HREF="manual.html#6.5.1">6.5.1 &ndash; Patterns</A>
+<LI><A HREF="manual.html#6.5.2">6.5.2 &ndash; Format Strings for Pack and Unpack</A>
 </UL>
-<LI><A HREF="manual.html#6.5">6.5 &ndash; UTF-8 Support</A>
-<LI><A HREF="manual.html#6.6">6.6 &ndash; Table Manipulation</A>
-<LI><A HREF="manual.html#6.7">6.7 &ndash; Mathematical Functions</A>
-<LI><A HREF="manual.html#6.8">6.8 &ndash; Input and Output Facilities</A>
-<LI><A HREF="manual.html#6.9">6.9 &ndash; Operating System Facilities</A>
-<LI><A HREF="manual.html#6.10">6.10 &ndash; The Debug Library</A>
+<LI><A HREF="manual.html#6.6">6.6 &ndash; UTF-8 Support</A>
+<LI><A HREF="manual.html#6.7">6.7 &ndash; Table Manipulation</A>
+<LI><A HREF="manual.html#6.8">6.8 &ndash; Mathematical Functions</A>
+<LI><A HREF="manual.html#6.9">6.9 &ndash; Input and Output Facilities</A>
+<LI><A HREF="manual.html#6.10">6.10 &ndash; Operating System Facilities</A>
+<LI><A HREF="manual.html#6.11">6.11 &ndash; The Debug Library</A>
 </UL>
 <P>
 <LI><A HREF="manual.html#7">7 &ndash; Lua Standalone</A>
@@ -366,11 +363,11 @@ Freely available under the terms of the
 <H3><A NAME="env">environment<BR>variables</A></H3>
 <P>
 <A HREF="manual.html#pdf-LUA_CPATH">LUA_CPATH</A><BR>
-<A HREF="manual.html#pdf-LUA_CPATH_5_4">LUA_CPATH_5_4</A><BR>
+<A HREF="manual.html#pdf-LUA_CPATH_5_5">LUA_CPATH_5_5</A><BR>
 <A HREF="manual.html#pdf-LUA_INIT">LUA_INIT</A><BR>
-<A HREF="manual.html#pdf-LUA_INIT_5_4">LUA_INIT_5_4</A><BR>
+<A HREF="manual.html#pdf-LUA_INIT_5_5">LUA_INIT_5_5</A><BR>
 <A HREF="manual.html#pdf-LUA_PATH">LUA_PATH</A><BR>
-<A HREF="manual.html#pdf-LUA_PATH_5_4">LUA_PATH_5_4</A><BR>
+<A HREF="manual.html#pdf-LUA_PATH_5_5">LUA_PATH_5_5</A><BR>
 
 </TD>
 <TD>
@@ -399,6 +396,7 @@ Freely available under the terms of the
 <A HREF="manual.html#lua_checkstack">lua_checkstack</A><BR>
 <A HREF="manual.html#lua_close">lua_close</A><BR>
 <A HREF="manual.html#lua_closeslot">lua_closeslot</A><BR>
+<A HREF="manual.html#lua_closethread">lua_closethread</A><BR>
 <A HREF="manual.html#lua_compare">lua_compare</A><BR>
 <A HREF="manual.html#lua_concat">lua_concat</A><BR>
 <A HREF="manual.html#lua_copy">lua_copy</A><BR>
@@ -444,6 +442,7 @@ Freely available under the terms of the
 <A HREF="manual.html#lua_newthread">lua_newthread</A><BR>
 <A HREF="manual.html#lua_newuserdatauv">lua_newuserdatauv</A><BR>
 <A HREF="manual.html#lua_next">lua_next</A><BR>
+<A HREF="manual.html#lua_numbertocstring">lua_numbertocstring</A><BR>
 <A HREF="manual.html#lua_numbertointeger">lua_numbertointeger</A><BR>
 <A HREF="manual.html#lua_pcall">lua_pcall</A><BR>
 <A HREF="manual.html#lua_pcallk">lua_pcallk</A><BR>
@@ -451,6 +450,7 @@ Freely available under the terms of the
 <A HREF="manual.html#lua_pushboolean">lua_pushboolean</A><BR>
 <A HREF="manual.html#lua_pushcclosure">lua_pushcclosure</A><BR>
 <A HREF="manual.html#lua_pushcfunction">lua_pushcfunction</A><BR>
+<A HREF="manual.html#lua_pushexternalstring">lua_pushexternalstring</A><BR>
 <A HREF="manual.html#lua_pushfstring">lua_pushfstring</A><BR>
 <A HREF="manual.html#lua_pushglobaltable">lua_pushglobaltable</A><BR>
 <A HREF="manual.html#lua_pushinteger">lua_pushinteger</A><BR>
@@ -474,7 +474,6 @@ Freely available under the terms of the
 <A HREF="manual.html#lua_register">lua_register</A><BR>
 <A HREF="manual.html#lua_remove">lua_remove</A><BR>
 <A HREF="manual.html#lua_replace">lua_replace</A><BR>
-<A HREF="manual.html#lua_resetthread">lua_resetthread</A><BR>
 <A HREF="manual.html#lua_resume">lua_resume</A><BR>
 <A HREF="manual.html#lua_rotate">lua_rotate</A><BR>
 <A HREF="manual.html#lua_setallocf">lua_setallocf</A><BR>
@@ -563,11 +562,13 @@ Freely available under the terms of the
 <A HREF="manual.html#luaL_loadfile">luaL_loadfile</A><BR>
 <A HREF="manual.html#luaL_loadfilex">luaL_loadfilex</A><BR>
 <A HREF="manual.html#luaL_loadstring">luaL_loadstring</A><BR>
+<A HREF="manual.html#luaL_makeseed">luaL_makeseed</A><BR>
 <A HREF="manual.html#luaL_newlib">luaL_newlib</A><BR>
 <A HREF="manual.html#luaL_newlibtable">luaL_newlibtable</A><BR>
 <A HREF="manual.html#luaL_newmetatable">luaL_newmetatable</A><BR>
 <A HREF="manual.html#luaL_newstate">luaL_newstate</A><BR>
 <A HREF="manual.html#luaL_openlibs">luaL_openlibs</A><BR>
+<A HREF="manual.html#luaL_openselectedlibs">luaL_openselectedlibs</A><BR>
 <A HREF="manual.html#luaL_opt">luaL_opt</A><BR>
 <A HREF="manual.html#luaL_optinteger">luaL_optinteger</A><BR>
 <A HREF="manual.html#luaL_optlstring">luaL_optlstring</A><BR>
@@ -668,10 +669,10 @@ Freely available under the terms of the
 
 <P CLASS="footer">
 Last update:
-Wed May 21 21:11:33 UTC 2025
+Tue Jun 24 10:26:21 UTC 2025
 </P>
 <!--
-Last change: revised for Lua 5.4.8
+Last change: revised for Lua 5.5.0
 -->
 
 </BODY>
