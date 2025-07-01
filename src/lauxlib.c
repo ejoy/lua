@@ -1199,6 +1199,7 @@ LUALIB_API void luaL_checkversion_ (lua_State *L, lua_Number ver, size_t sz) {
 // use clonefunction
 
 #include "spinlock.h"
+#include "lstate.h"
 
 struct codecache {
 	struct spinlock lock;
@@ -1207,19 +1208,26 @@ struct codecache {
 
 static struct codecache CC;
 
+static lua_State *
+newState(lua_State *fromL) {
+  lua_State *L = lua_newstate(l_alloc, NULL, G(fromL)->seed);
+  return L;
+}
+
 static void
 clearcache(void) {
 	if (CC.L == NULL)
 		return;
 	SPIN_LOCK(&CC)
-		lua_close(CC.L);
-		CC.L = luaL_newstate();
+		lua_State *fromL = CC.L;
+		CC.L = newState(fromL);
+		lua_close(fromL);
 	SPIN_UNLOCK(&CC)
 }
 
 static void
-init(void) {
-	CC.L = luaL_newstate();
+init(lua_State *L) {
+	CC.L = newState(L);
 }
 
 
@@ -1248,13 +1256,13 @@ load_proto(const char *key) {
 }
 
 static const void *
-save_proto(const char *key, const void * proto) {
+save_proto(lua_State *fromL, const char *key, const void * proto) {
   lua_State *L;
   const void * result = NULL;
 
   SPIN_LOCK(&CC)
     if (CC.L == NULL) {
-      init();
+      init(fromL);
     }
     L = CC.L;
     lua_pushstring(L, key);
@@ -1334,7 +1342,7 @@ LUALIB_API int luaL_loadfilex (lua_State *L, const char *filename,
   if (level == CACHE_EXIST) {
     return luaL_loadfilex_(L, filename, mode);
   }
-  eL = luaL_newstate();
+  eL = newState(L);
   if (eL == NULL) {
     lua_pushliteral(L, "New state failed");
     return LUA_ERRMEM;
@@ -1349,7 +1357,7 @@ LUALIB_API int luaL_loadfilex (lua_State *L, const char *filename,
   }
   lua_sharefunction(eL, -1);
   proto = lua_topointer(eL, -1);
-  oldv = save_proto(filename, proto);
+  oldv = save_proto(L, filename, proto);
   if (oldv) {
     lua_close(eL);
     lua_clonefunction(L, oldv);
