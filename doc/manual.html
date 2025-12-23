@@ -10,7 +10,7 @@
 <BODY>
 
 <H1>
-<A HREF="https://www.lua.org/"><IMG SRC="logo.gif" ALT="Lua"></A>
+<A HREF="https://www.lua.org/"><IMG SRC="logo.png" ALT="Lua"></A>
 Lua 5.5 Reference Manual
 </H1>
 
@@ -166,7 +166,7 @@ for small machines and embedded systems.
 <p>
 Unless stated otherwise,
 any overflow when manipulating integer values <em>wrap around</em>,
-according to the usual rules of two-complement arithmetic.
+according to the usual rules of two's complement arithmetic.
 (In other words,
 the actual result is the unique representable integer
 that is equal modulo <em>2<sup>n</sup></em> to the mathematical result,
@@ -190,7 +190,8 @@ strings can contain any 8-bit value,
 including embedded zeros ('<code>\0</code>').
 Lua is also encoding-agnostic;
 it makes no assumptions about the contents of a string.
-The length of any string in Lua must fit in a Lua integer.
+The length of any string in Lua must fit in a Lua integer,
+and the string plus a small header must fit in <code>size_t</code>.
 
 
 <p>
@@ -314,7 +315,7 @@ as the following example illustrates:
 <pre>
      X = 1       -- Ok, global by default
      do
-       global Y  -- voids implicit initial declaration
+       global Y  -- voids the implicit initial declaration
        Y = 1     -- Ok, Y declared as global
        X = 1     -- ERROR, X not declared
      end
@@ -360,7 +361,7 @@ See the next example:
 <p>
 Notice that, in a declaration like <code>local x = x</code>,
 the new <code>x</code> being declared is not in scope yet,
-and so the <code>x</code> in the left-hand side refers to the outside variable.
+and so the <code>x</code> on the right-hand side refers to the outside variable.
 
 
 <p>
@@ -1895,7 +1896,8 @@ It has the following syntax:
 	stat ::= <b>for</b> Name &lsquo;<b>=</b>&rsquo; exp &lsquo;<b>,</b>&rsquo; exp [&lsquo;<b>,</b>&rsquo; exp] <b>do</b> block <b>end</b>
 </pre><p>
 The given identifier (Name) defines the control variable,
-which is a new read-only variable local to the loop body (<em>block</em>).
+which is a new read-only (<code>const</code>) variable local to the loop body
+(<em>block</em>).
 
 
 <p>
@@ -1963,7 +1965,7 @@ works as follows.
 <p>
 The names <em>var_i</em> declare loop variables local to the loop body.
 The first of these variables is the <em>control variable</em>,
-which is a read-only variable.
+which is a read-only (<code>const</code>) variable.
 
 
 <p>
@@ -2015,15 +2017,21 @@ Function calls are explained in <a href="#3.4.10">&sect;3.4.10</a>.
 
 <h3>3.3.7 &ndash; <a name="3.3.7">Variable Declarations</a></h3><p>
 Local and global variables can be declared anywhere inside a block.
-The declaration for locals can include an initialization:
+The declaration can include an initialization:
 
 <pre>
 	stat ::= <b>local</b> attnamelist [&lsquo;<b>=</b>&rsquo; explist]
-	stat ::= <b>global</b> attnamelist
+	stat ::= <b>global</b> attnamelist [&lsquo;<b>=</b>&rsquo; explist]
 </pre><p>
-If present, an initial assignment has the same semantics
+If there is no initialization,
+local variables are initialized with <b>nil</b>;
+global variables are left unchanged.
+Otherwise, the initialization gets the same adjustment
 of a multiple assignment (see <a href="#3.3.3">&sect;3.3.3</a>).
-Otherwise, all local variables are initialized with <b>nil</b>.
+Moreover, for global variables,
+the initialization will raise a runtime error
+if the variable is already defined,
+that is, it has a non-nil value.
 
 
 <p>
@@ -2084,7 +2092,8 @@ and a program that starts with any other global declaration
 
 <p>
 Note that, for global variables,
-the effect of any declaration is only syntactical:
+the effect of any declaration is only syntactical
+(except for the optional assignment):
 
 <pre>
      global X &lt;const&gt;, _G
@@ -2537,12 +2546,12 @@ do not interfere with borders.
 
 <p>
 A table with exactly one border is called a <em>sequence</em>.
-For instance, the table <code>{10, 20, 30, 40, 50}</code> is a sequence,
+For instance, the table <code>{10,20,30,40,50}</code> is a sequence,
 as it has only one border (5).
-The table <code>{10, 20, 30, nil, 50}</code> has two borders (3 and 5),
+The table <code>{10,20,30,nil,50}</code> has two borders (3 and 5),
 and therefore it is not a sequence.
 (The <b>nil</b> at index 4 is called a <em>hole</em>.)
-The table <code>{nil, 20, 30, nil, nil, 60, nil}</code>
+The table <code>{nil,20,30,nil,nil,60,nil}</code>
 has three borders (0, 3, and 6),
 so it is not a sequence, too.
 The table <code>{}</code> is a sequence with border 0.
@@ -2692,7 +2701,7 @@ The form
 </pre><p>
 can be used to emulate methods.
 A call <code>v:name(<em>args</em>)</code>
-is syntactic sugar for <code>v.name(v,<em>args</em>)</code>,
+is syntactic sugar for <code>v.name(v, <em>args</em>)</code>,
 except that <code>v</code> is evaluated only once.
 
 
@@ -2747,7 +2756,7 @@ So, none of the following examples are tail calls:
 <h3>3.4.11 &ndash; <a name="3.4.11">Function Definitions</a></h3>
 
 <p>
-The syntax for function definition is
+The syntax for a function definition is
 
 <pre>
 	functiondef ::= <b>function</b> funcbody
@@ -2810,80 +2819,10 @@ Similarly, the statement
 translates to
 
 <pre>
-     global f; f = function () <em>body</em> end
-</pre>
-
-<p>
-A function definition is an executable expression,
-whose value has type <em>function</em>.
-When Lua precompiles a chunk,
-all its function bodies are precompiled too,
-but they are not created yet.
-Then, whenever Lua executes the function definition,
-the function is <em>instantiated</em> (or <em>closed</em>).
-This function instance, or <em>closure</em>,
-is the final value of the expression.
-
-
-<p>
-Parameters act as local variables that are
-initialized with the argument values:
-
-<pre>
-	parlist ::= namelist [&lsquo;<b>,</b>&rsquo; &lsquo;<b>...</b>&rsquo;] | &lsquo;<b>...</b>&rsquo;
+     global f; global f = function () <em>body</em> end
 </pre><p>
-When a Lua function is called,
-it adjusts its list of arguments to
-the length of its list of parameters (see <a href="#3.4.12">&sect;3.4.12</a>),
-unless the function is a <em>variadic function</em>,
-which is indicated by three dots ('<code>...</code>')
-at the end of its parameter list.
-A variadic function does not adjust its argument list;
-instead, it collects all extra arguments and supplies them
-to the function through a <em>vararg expression</em>,
-which is also written as three dots.
-The value of this expression is a list of all actual extra arguments,
-similar to a function with multiple results (see <a href="#3.4.12">&sect;3.4.12</a>).
-
-
-<p>
-As an example, consider the following definitions:
-
-<pre>
-     function f(a, b) end
-     function g(a, b, ...) end
-     function r() return 1,2,3 end
-</pre><p>
-Then, we have the following mapping from arguments to parameters and
-to the vararg expression:
-
-<pre>
-     CALL             PARAMETERS
-     
-     f(3)             a=3, b=nil
-     f(3, 4)          a=3, b=4
-     f(3, 4, 5)       a=3, b=4
-     f(r(), 10)       a=1, b=10
-     f(r())           a=1, b=2
-     
-     g(3)             a=3, b=nil, ... -&gt;  (nothing)
-     g(3, 4)          a=3, b=4,   ... -&gt;  (nothing)
-     g(3, 4, 5, 8)    a=3, b=4,   ... -&gt;  5  8
-     g(5, r())        a=5, b=1,   ... -&gt;  2  3
-</pre>
-
-<p>
-Results are returned using the <b>return</b> statement (see <a href="#3.3.4">&sect;3.3.4</a>).
-If control reaches the end of a function
-without encountering a <b>return</b> statement,
-then the function returns with no results.
-
-
-<p>
-
-There is a system-dependent limit on the number of values
-that a function may return.
-This limit is guaranteed to be at least 1000.
+The second <b>global</b> makes the assignment an initialization,
+which will raise an error if that global is already defined.
 
 
 <p>
@@ -2901,11 +2840,123 @@ is syntactic sugar for
      t.a.b.c.f = function (self, <em>params</em>) <em>body</em> end
 </pre>
 
+<p>
+A function definition is an executable expression,
+whose value has type <em>function</em>.
+When Lua precompiles a chunk,
+all its function bodies are precompiled too,
+but they are not created yet.
+Then, whenever Lua executes the function definition,
+the function is <em>instantiated</em> (or <em>closed</em>).
+This function instance, or <em>closure</em>,
+is the final value of the expression.
+
+
+<p>
+Results are returned using the <b>return</b> statement (see <a href="#3.3.4">&sect;3.3.4</a>).
+If control reaches the end of a function
+without encountering a <b>return</b> statement,
+then the function returns with no results.
+
+
+<p>
+
+There is a system-dependent limit on the number of values
+that a function may return.
+This limit is guaranteed to be at least 1000.
 
 
 
-<h3>3.4.12 &ndash; <a name="3.4.12">Lists of expressions, multiple results,
-and adjustment</a></h3>
+<h4>Parameters</h4>
+
+<p>
+Parameters act as local variables that are
+initialized with the argument values:
+
+<pre>
+	parlist ::= namelist [&lsquo;<b>,</b>&rsquo; varargparam] | varargparam
+	varargparam ::= &lsquo;<b>...</b>&rsquo; [Name]
+</pre><p>
+When a Lua function is called,
+it adjusts its list of arguments to
+the length of its list of parameters (see <a href="#3.4.12">&sect;3.4.12</a>),
+unless the function is a <em>variadic function</em>,
+which is indicated by three dots ('<code>...</code>')
+at the end of its parameter list.
+A variadic function does not adjust its argument list;
+instead, it collects all extra arguments and supplies them
+to the function through a <em>vararg table</em>.
+In that table,
+the values at indices 1, 2, etc. are the extra arguments,
+and the value at index "<code>n</code>" is the number of extra arguments.
+
+
+<p>
+As an example, consider the following definitions:
+
+<pre>
+     function f(a, b) end
+     function g(a, b, ...) end
+     function r() return 1,2,3 end
+</pre><p>
+Then, we have the following mapping from arguments to parameters and
+to the vararg table:
+
+<pre>
+     CALL             PARAMETERS
+     
+     f(3)             a=3, b=nil
+     f(3, 4)          a=3, b=4
+     f(3, 4, 5)       a=3, b=4
+     f(r(), 10)       a=1, b=10
+     f(r())           a=1, b=2
+     
+     g(3)             a=3, b=nil, va. table -&gt;  {n = 0}
+     g(3, 4)          a=3, b=4,   va. table -&gt;  {n = 0}
+     g(3, 4, 5, 8)    a=3, b=4,   va. table -&gt;  {5, 8, n = 2}
+     g(5, r())        a=5, b=1,   va. table -&gt;  {2, 3, n = 2}
+</pre>
+
+<p>
+A vararg table in a variadic function can have an optional name,
+given after the three dots.
+When present,
+that name denotes a read-only local variable that
+refers to the vararg table.
+If the vararg table does not have a name,
+it can only be accessed through a vararg expression.
+
+
+<p>
+A vararg expression is also written as three dots,
+and its value is a list of the values in the vararg table,
+from 1 to the integer value at index "<code>n</code>".
+(Therefore, if the code does not modify the vararg table,
+this list corresponds to the extra arguments in the function call.)
+This list behaves like the results from a
+function with multiple results (see <a href="#3.4.12">&sect;3.4.12</a>).
+
+
+<p>
+As an optimization,
+if the vararg table satisfies some conditions,
+the code does not create an actual table and instead translates
+the indexing expressions and the vararg expressions
+into accesses to the internal vararg data.
+The conditions are as follows:
+If the vararg table has a name,
+that name is not an upvalue in a nested function
+and it is used only as the base table
+in the syntactic constructions <code>t[exp]</code> or <code>t.id</code>.
+Note that an anonymous vararg table always satisfy these conditions.
+
+
+
+
+
+
+
+<h3>3.4.12 &ndash; <a name="3.4.12">Lists of Expressions, Multiple Results, and Adjustment</a></h3>
 
 <p>
 Both function calls and vararg expressions can result in multiple values.
@@ -2928,22 +2979,22 @@ These are the places where Lua expects a list of expressions:
 <ul>
 
 <li>A <b>return</b> statement,
-for instance <code>return e1, e2, e3</code> (see <a href="#3.3.4">&sect;3.3.4</a>).</li>
+for instance <code>return e1,e2,e3</code> (see <a href="#3.3.4">&sect;3.3.4</a>).</li>
 
 <li>A table constructor,
-for instance <code>{e1, e2, e3}</code> (see <a href="#3.4.9">&sect;3.4.9</a>).</li>
+for instance <code>{e1,e2,e3}</code> (see <a href="#3.4.9">&sect;3.4.9</a>).</li>
 
 <li>The arguments of a function call,
-for instance <code>foo(e1, e2, e3)</code> (see <a href="#3.4.10">&sect;3.4.10</a>).</li>
+for instance <code>foo(e1,e2,e3)</code> (see <a href="#3.4.10">&sect;3.4.10</a>).</li>
 
 <li>A multiple assignment,
-for instance <code>a , b, c = e1, e2, e3</code> (see <a href="#3.3.3">&sect;3.3.3</a>).</li>
+for instance <code>a,b,c = e1,e2,e3</code> (see <a href="#3.3.3">&sect;3.3.3</a>).</li>
 
-<li>A local declaration,
-for instance <code>local a , b, c = e1, e2, e3</code> (see <a href="#3.3.7">&sect;3.3.7</a>).</li>
+<li>A local or global declaration,
+which is similar to a multiple assignment.</li>
 
 <li>The initial values in a generic <b>for</b> loop,
-for instance <code>for k in e1, e2, e3 do ... end</code> (see <a href="#3.3.5">&sect;3.3.5</a>).</li>
+for instance <code>for k in e1,e2,e3 do ... end</code> (see <a href="#3.3.5">&sect;3.3.5</a>).</li>
 
 </ul><p>
 In the last four cases,
@@ -2951,8 +3002,7 @@ the list of values from the list of expressions
 must be <em>adjusted</em> to a specific length:
 the number of parameters in a call to a non-variadic function
 (see <a href="#3.4.11">&sect;3.4.11</a>),
-the number of variables in a multiple assignment or
-a local declaration,
+the number of variables in a multiple assignment or a declaration,
 and exactly four values for a generic <b>for</b> loop.
 The <em>adjustment</em> follows these rules:
 If there are more values than needed,
@@ -2987,7 +3037,7 @@ in its place.
 
 
 <p>
-Here are some examples of uses of mutlres expressions.
+Here are some examples of uses of multires expressions.
 In all cases, when the construction needs
 "the n-th result" and there is no such result,
 it uses a <b>nil</b>.
@@ -3210,7 +3260,7 @@ which behaves like a nil value.
 
 
 
-<h3>4.1.3 &ndash; <a name="4.1.3">Pointers to strings</a></h3>
+<h3>4.1.3 &ndash; <a name="4.1.3">Pointers to Strings</a></h3>
 
 <p>
 Several functions in the API return pointers (<code>const char*</code>)
@@ -3422,7 +3472,16 @@ memory allocation error.
 For such errors, Lua does not call the message handler.
 </li>
 
-<li><b><a name="pdf-LUA_ERRERR"><code>LUA_ERRERR</code></a></b>:  error while running the message handler.</li>
+<li><b><a name="pdf-LUA_ERRERR"><code>LUA_ERRERR</code></a></b>: 
+stack overflow while running the message handler
+due to another stack overflow.
+More often than not,
+this error is the result of some other error while running
+a message handler.
+An error in a message handler will call the handler again,
+which will generate the error again, and so on,
+until this loop exhausts the stack and cause this error.
+</li>
 
 <li><b><a name="pdf-LUA_ERRSYNTAX"><code>LUA_ERRSYNTAX</code></a></b>:  syntax error during precompilation
 or format error in a binary chunk.</li>
@@ -3631,7 +3690,7 @@ into an equivalent absolute index
                              size_t nsize);</pre>
 
 <p>
-The type of the memory-allocation function used by Lua states.
+The type of the memory-allocator function used by Lua states.
 The allocator function must provide a
 functionality similar to <code>realloc</code>,
 but not exactly the same.
@@ -3678,12 +3737,13 @@ if and only if it cannot fulfill the request.
 
 
 <p>
-Here is a simple implementation for the allocator function.
-It is used in the auxiliary library by <a href="#luaL_newstate"><code>luaL_newstate</code></a>.
+Here is a simple implementation for the allocator function,
+corresponding to the function <a href="#luaL_alloc"><code>luaL_alloc</code></a> from the
+auxiliary library.
 
 <pre>
-     static void *l_alloc (void *ud, void *ptr, size_t osize,
-                                                size_t nsize) {
+     void *luaL_alloc (void *ud, void *ptr, size_t osize,
+                                            size_t nsize) {
        (void)ud;  (void)osize;  /* not used */
        if (nsize == 0) {
          free(ptr);
@@ -4213,7 +4273,7 @@ This function should not be called by a finalizer.
 <pre>lua_Alloc lua_getallocf (lua_State *L, void **ud);</pre>
 
 <p>
-Returns the memory-allocation function of a given state.
+Returns the memory-allocator function of a given state.
 If <code>ud</code> is not <code>NULL</code>, Lua stores in <code>*ud</code> the
 opaque pointer given when the memory-allocator function was set.
 
@@ -4387,9 +4447,9 @@ The type of integers in Lua.
 
 <p>
 By default this type is <code>long long</code>,
-(usually a 64-bit two-complement integer),
+(usually a 64-bit two's complement integer),
 but that can be changed to <code>long</code> or <code>int</code>
-(usually a 32-bit two-complement integer).
+(usually a 32-bit two's complement integer).
 (See <code>LUA_INT_TYPE</code> in <code>luaconf.h</code>.)
 
 
@@ -4720,7 +4780,7 @@ is a seed for the hashing of strings.
 
 <p>
 Creates a new empty table and pushes it onto the stack.
-It is equivalent to <code>lua_createtable(L, 0, 0)</code>.
+It is equivalent to <code>lua_createtable(L,0,0)</code>.
 
 
 
@@ -4855,8 +4915,8 @@ This macro may evaluate its arguments more than once.
 
 <hr><h3><a name="lua_numbertocstring"><code>lua_numbertocstring</code></a></h3><p>
 <span class="apii">[-0, +0, &ndash;]</span>
-<pre>unsigned (lua_numbertocstring) (lua_State *L, int idx,
-                                          char *buff);</pre>
+<pre>unsigned lua_numbertocstring (lua_State *L, int idx,
+                                        char *buff);</pre>
 
 <p>
 Converts the number at acceptable index <code>idx</code> to a string
@@ -5024,7 +5084,7 @@ This function is equivalent to <a href="#lua_pushcclosure"><code>lua_pushcclosur
 
 <hr><h3><a name="lua_pushexternalstring"><code>lua_pushexternalstring</code></a></h3><p>
 <span class="apii">[-0, +1, <em>m</em>]</span>
-<pre>const char *(lua_pushexternalstring) (lua_State *L,
+<pre>const char *lua_pushexternalstring (lua_State *L,
                 const char *s, size_t len, lua_Alloc falloc, void *ud);</pre>
 
 <p>
@@ -5051,24 +5111,21 @@ and 0 as the new size.
 
 
 <p>
-Lua always internalizes strings with lengths up to 40 characters.
-So, for strings in that range,
-this function will immediately internalize the string
-and call <code>falloc</code> to free the buffer.
-
-
-<p>
 Even when using an external buffer,
 Lua still has to allocate a header for the string.
 In case of a memory-allocation error,
 Lua will call <code>falloc</code> before raising the error.
 
 
+<p>
+The function returns a pointer to the string (that is, <code>s</code>).
+
+
 
 
 
 <hr><h3><a name="lua_pushfstring"><code>lua_pushfstring</code></a></h3><p>
-<span class="apii">[-0, +1, <em>m</em>]</span>
+<span class="apii">[-0, +1, <em>v</em>]</span>
 <pre>const char *lua_pushfstring (lua_State *L, const char *fmt, ...);</pre>
 
 <p>
@@ -5091,6 +5148,11 @@ A conversion specifier (and its corresponding extra argument) can be
 <p>
 Every occurrence of '<code>%</code>' in the string <code>fmt</code>
 must form a valid conversion specifier.
+
+
+<p>
+Besides memory allocation errors,
+this function may raise an error if the resulting string is too large.
 
 
 
@@ -5140,7 +5202,7 @@ light userdata with the same C&nbsp;address.
 
 
 <hr><h3><a name="lua_pushliteral"><code>lua_pushliteral</code></a></h3><p>
-<span class="apii">[-0, +1, <em>m</em>]</span>
+<span class="apii">[-0, +1, <em>v</em>]</span>
 <pre>const char *lua_pushliteral (lua_State *L, const char *s);</pre>
 
 <p>
@@ -5153,7 +5215,7 @@ but should be used only when <code>s</code> is a literal string.
 
 
 <hr><h3><a name="lua_pushlstring"><code>lua_pushlstring</code></a></h3><p>
-<span class="apii">[-0, +1, <em>m</em>]</span>
+<span class="apii">[-0, +1, <em>v</em>]</span>
 <pre>const char *lua_pushlstring (lua_State *L, const char *s, size_t len);</pre>
 
 <p>
@@ -5168,6 +5230,11 @@ including embedded zeros.
 
 <p>
 Returns a pointer to the internal copy of the string (see <a href="#4.1.3">&sect;4.1.3</a>).
+
+
+<p>
+Besides memory allocation errors,
+this function may raise an error if the string is too large.
 
 
 
@@ -6317,8 +6384,8 @@ then <code>name</code> is set to <code>NULL</code>.
 <li><b><code>namewhat</code></b>: 
 explains the <code>name</code> field.
 The value of <code>namewhat</code> can be
-<code>"global"</code>, <code>"local"</code>, <code>"method"</code>,
-<code>"field"</code>, <code>"upvalue"</code>, or <code>""</code> (the empty string),
+<code>"global"</code>, <code>"local"</code>, <code>"upvalue"</code>,
+<code>"field"</code>, <code>""</code> (the empty string), plus some other options,
 according to how the function was called.
 (Lua uses the empty string when no other option seems to apply.)
 </li>
@@ -6779,7 +6846,7 @@ common tasks.
 
 <p>
 All functions and types from the auxiliary library
-are defined in header file <code>lauxlib.h</code> and
+are defined in the header file <code>lauxlib.h</code> and
 have a prefix <code>luaL_</code>.
 
 
@@ -6974,7 +7041,7 @@ Its pattern of use is as follows:
 
 <li>First declare a variable <code>b</code> of type <a href="#luaL_Buffer"><code>luaL_Buffer</code></a>.</li>
 
-<li>Then initialize it with a call <code>luaL_buffinit(L, &amp;b)</code>.</li>
+<li>Then initialize it with a call <code>luaL_buffinit(L,&amp;b)</code>.</li>
 
 <li>
 Then add string pieces to the buffer calling any of
@@ -6997,12 +7064,12 @@ you can use the buffer like this:
 <li>First declare a variable <code>b</code> of type <a href="#luaL_Buffer"><code>luaL_Buffer</code></a>.</li>
 
 <li>Then initialize it and preallocate a space of
-size <code>sz</code> with a call <code>luaL_buffinitsize(L, &amp;b, sz)</code>.</li>
+size <code>sz</code> with a call <code>luaL_buffinitsize(L,&amp;b,sz)</code>.</li>
 
 <li>Then produce the string into that space.</li>
 
 <li>
-Finish by calling <code>luaL_pushresultsize(&amp;b, sz)</code>,
+Finish by calling <code>luaL_pushresultsize(&amp;b,sz)</code>,
 where <code>sz</code> is the total size of the resulting string
 copied into that space (which may be less than or
 equal to the preallocated size).
@@ -7543,9 +7610,8 @@ it does not run it.
 
 <p>
 Returns a value with a weak attempt for randomness.
-(It produces that value based on the current date and time
-and the address of an internal variable,
-in case the machine has Address Space Layout Randomization.)
+The parameter <code>L</code> can be <code>NULL</code>
+if there is no Lua state available.
 
 
 
@@ -7623,8 +7689,9 @@ with <code>tname</code> in the registry.
 
 <p>
 Creates a new Lua state.
-It calls <a href="#lua_newstate"><code>lua_newstate</code></a> with an
-allocator based on the ISO&nbsp;C allocation functions
+It calls <a href="#lua_newstate"><code>lua_newstate</code></a> with <a href="#luaL_alloc"><code>luaL_alloc</code></a> as
+the allocator function and the result of <code>luaL_makeseed(NULL)</code>
+as the seed,
 and then sets a warning function and a panic function (see <a href="#4.4">&sect;4.4</a>)
 that print messages to the standard error output.
 
@@ -7828,7 +7895,7 @@ after the first use of <a href="#luaL_ref"><code>luaL_ref</code></a>.
 
 <p>
 You can retrieve an object referred by the reference <code>r</code>
-by calling <code>lua_rawgeti(L, t, r)</code> or <code>lua_geti(L, t, r)</code>.
+by calling <code>lua_rawgeti(L,t,r)</code> or <code>lua_geti(L,t,r)</code>.
 The function <a href="#luaL_unref"><code>luaL_unref</code></a> frees a reference.
 
 
@@ -7919,6 +7986,17 @@ which is filled with <b>false</b>.
 Sets the metatable of the object on the top of the stack
 as the metatable associated with name <code>tname</code>
 in the registry (see <a href="#luaL_newmetatable"><code>luaL_newmetatable</code></a>).
+
+
+
+
+
+<hr><h3><a name="luaL_alloc"><code>luaL_alloc</code></a></h3>
+<pre>void *luaL_alloc (void *ud, void *ptr, size_t osize, size_t nsize);</pre>
+
+<p>
+A standard allocator function for Lua (see <a href="#lua_Alloc"><code>lua_Alloc</code></a>),
+built on top of the C functions <code>realloc</code> and <code>free</code>.
 
 
 
@@ -8165,7 +8243,7 @@ the host program can call the function <a href="#luaL_openlibs"><code>luaL_openl
 Alternatively,
 the host can select which libraries to open,
 by using <a href="#luaL_openselectedlibs"><code>luaL_openselectedlibs</code></a>.
-Both functions are defined in the header file <code>lualib.h</code>.
+Both functions are declared in the header file <code>lualib.h</code>.
 
 
 
@@ -8341,7 +8419,7 @@ the value is left unchanged.
 
 
 <p>
-Lua rounds these values before storing them;
+Lua stores these values in a compressed format,
 so, the value returned as the previous value may not be
 exactly the last value set.
 </li>
@@ -8359,10 +8437,10 @@ This function should not be called by a finalizer.
 
 <p>
 <hr><h3><a name="pdf-dofile"><code>dofile ([filename])</code></a></h3>
-Opens the named file and executes its content as a Lua chunk.
+Opens the named file and executes its content as a Lua chunk,
+returning all values returned by the chunk.
 When called without arguments,
 <code>dofile</code> executes the content of the standard input (<code>stdin</code>).
-Returns all values returned by the chunk.
 In case of errors, <code>dofile</code> propagates the error
 to its caller.
 (That is, <code>dofile</code> does not run in protected mode.)
@@ -8560,13 +8638,13 @@ In particular, you may set existing fields to nil.
 
 <p>
 If <code>t</code> has a metamethod <code>__pairs</code>,
-calls it with <code>t</code> as argument and returns the first three
+calls it with <code>t</code> as argument and returns the first four
 results from the call.
 
 
 <p>
 Otherwise,
-returns three values: the <a href="#pdf-next"><code>next</code></a> function, the table <code>t</code>, and <b>nil</b>,
+returns the <a href="#pdf-next"><code>next</code></a> function, the table <code>t</code>, plus two <b>nil</b> values,
 so that the construction
 
 <pre>
@@ -8862,7 +8940,7 @@ in case of error
 (either the original error that stopped the coroutine or
 errors in closing methods),
 this function returns <b>false</b> plus the error object;
-otherwise ir returns <b>true</b>.
+otherwise it returns <b>true</b>.
 
 
 
@@ -9791,7 +9869,7 @@ If <code>j</code> is absent, then it is assumed to be equal to -1
 In particular,
 the call <code>string.sub(s,1,j)</code> returns a prefix of <code>s</code>
 with length <code>j</code>,
-and <code>string.sub(s, -i)</code> (for a positive <code>i</code>)
+and <code>string.sub(s,-i)</code> (for a positive <code>i</code>)
 returns a suffix of <code>s</code>
 with length <code>i</code>.
 
@@ -10311,7 +10389,7 @@ the function returns <b>fail</b>.
 A negative <code>n</code> gets characters before position <code>i</code>.
 The default for <code>i</code> is 1 when <code>n</code> is non-negative
 and <code>#s + 1</code> otherwise,
-so that <code>utf8.offset(s, -n)</code> gets the offset of the
+so that <code>utf8.offset(s,-n)</code> gets the offset of the
 <code>n</code>-th character from the end of the string.
 
 
@@ -10386,7 +10464,7 @@ the table will have; its default is zero.
 <p>
 Inserts element <code>value</code> at position <code>pos</code> in <code>list</code>,
 shifting up the elements
-<code>list[pos], list[pos+1], &middot;&middot;&middot;, list[#list]</code>.
+<code>list[pos],list[pos+1],&middot;&middot;&middot;,list[#list]</code>.
 The default value for <code>pos</code> is <code>#list+1</code>,
 so that a call <code>table.insert(t,x)</code> inserts <code>x</code> at the end
 of the list <code>t</code>.
@@ -10438,7 +10516,7 @@ Removes from <code>list</code> the element at position <code>pos</code>,
 returning the value of the removed element.
 When <code>pos</code> is an integer between 1 and <code>#list</code>,
 it shifts down the elements
-<code>list[pos+1], list[pos+2], &middot;&middot;&middot;, list[#list]</code>
+<code>list[pos+1],list[pos+2],&middot;&middot;&middot;,list[#list]</code>
 and erases element <code>list[#list]</code>;
 The index <code>pos</code> can also be 0 when <code>#list</code> is 0,
 or <code>#list + 1</code>.
@@ -10630,12 +10708,37 @@ that rounds the quotient towards zero. (integer/float)
 
 
 <p>
+<hr><h3><a name="pdf-math.frexp"><code>math.frexp (x)</code></a></h3>
+
+
+<p>
+Returns two numbers <code>m</code> and <code>e</code> such that <em>x = m2<sup>e</sup></em>,
+where <code>e</code> is an integer.
+When <code>x</code> is zero, NaN, +inf, or -inf,
+<code>m</code> is equal to <code>x</code>;
+otherwise, the absolute value of <code>m</code>
+is in the range  <em>[0.5, 1)</em> .
+
+
+
+
+<p>
 <hr><h3><a name="pdf-math.huge"><code>math.huge</code></a></h3>
 
 
 <p>
 The float value <code>HUGE_VAL</code>,
 a value greater than any other numeric value.
+
+
+
+
+<p>
+<hr><h3><a name="pdf-math.ldexp"><code>math.ldexp (m, e)</code></a></h3>
+
+
+<p>
+Returns <em>m2<sup>e</sup></em>, where <code>e</code> is an integer.
 
 
 
@@ -10726,7 +10829,7 @@ Converts the angle <code>x</code> from degrees to radians.
 <p>
 When called without arguments,
 returns a pseudo-random float with uniform distribution
-in the range  <em>[0,1)</em>.  
+in the range  <em>[0, 1)</em>.  
 When called with two integers <code>m</code> and <code>n</code>,
 <code>math.random</code> returns a pseudo-random integer
 with uniform distribution in the range <em>[m, n]</em>.
@@ -11699,6 +11802,12 @@ Compile-time constants may not appear in this listing,
 if they were optimized away by the compiler.
 Negative indices refer to vararg arguments;
 -1 is the first vararg argument.
+These negative indices are only available when the vararg table
+has been optimized away;
+otherwise, the vararg arguments are available in the vararg table.
+
+
+<p>
 The function returns <b>fail</b>
 if there is no variable with the given index,
 and raises an error when called with a level out of range.
@@ -12360,7 +12469,9 @@ and LiteralString, see <a href="#3.1">&sect;3.1</a>.)
 
 	funcbody ::= &lsquo;<b>(</b>&rsquo; [parlist] &lsquo;<b>)</b>&rsquo; block <b>end</b>
 
-	parlist ::= namelist [&lsquo;<b>,</b>&rsquo; &lsquo;<b>...</b>&rsquo;] | &lsquo;<b>...</b>&rsquo;
+	parlist ::= namelist [&lsquo;<b>,</b>&rsquo; varargparam] | varargparam
+
+	varargparam ::= &lsquo;<b>...</b>&rsquo; [Name]
 
 	tableconstructor ::= &lsquo;<b>{</b>&rsquo; [fieldlist] &lsquo;<b>}</b>&rsquo;
 
@@ -12388,7 +12499,7 @@ and LiteralString, see <a href="#3.1">&sect;3.1</a>.)
 
 <P CLASS="footer">
 Last update:
-Sat Jun 28 10:06:59 UTC 2025
+Mon Dec 15 21:02:05 UTC 2025
 </P>
 <!--
 Last change: revised for Lua 5.5.0
