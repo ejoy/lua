@@ -347,6 +347,8 @@ static void PrintCode(const Proto* f)
   int bx=GETARG_Bx(i);
   int sb=GETARG_sB(i);
   int sc=GETARG_sC(i);
+  int vb=GETARG_vB(i);
+  int vc=GETARG_vC(i);
   int sbx=GETARG_sBx(i);
   int isk=GETARG_k(i);
   int line=luaG_getfuncline(f,pc);
@@ -428,8 +430,8 @@ static void PrintCode(const Proto* f)
 	if (isk) { printf(" "); PrintConstant(f,c); }
 	break;
    case OP_NEWTABLE:
-	printf("%d %d %d",a,b,c);
-	printf(COMMENT "%d",c+EXTRAARGC);
+	printf("%d %d %d%s",a,vb,vc,ISK);
+	printf(COMMENT "%d",vc+EXTRAARGC);
 	break;
    case OP_SELF:
 	printf("%d %d %d%s",a,b,c,ISK);
@@ -633,7 +635,7 @@ static void PrintCode(const Proto* f)
 	printf(COMMENT "to %d",pc-bx+2);
 	break;
    case OP_SETLIST:
-	printf("%d %d %d",a,b,c);
+	printf("%d %d %d%s",a,vb,vc,ISK);
 	if (isk) printf(COMMENT "%d",c+EXTRAARGC);
 	break;
    case OP_CLOSURE:
@@ -641,7 +643,7 @@ static void PrintCode(const Proto* f)
 	printf(COMMENT "%p",VOID(f->p[bx]));
 	break;
    case OP_VARARG:
-	printf("%d %d",a,c);
+	printf("%d %d %d%s",a,b,c,ISK);
 	printf(COMMENT);
 	if (c==0) printf("all out"); else printf("%d out",c-1);
 	break;
@@ -650,7 +652,8 @@ static void PrintCode(const Proto* f)
 	break;
    case OP_ERRNNIL:
 	printf("%d %d",a,bx);
-	printf(COMMENT); PrintConstant(f,bx);
+	printf(COMMENT);
+	if (bx==0) printf("?"); else PrintConstant(f,bx-1);
 	break;
    case OP_VARARGPREP:
 	printf("%d",a);
@@ -686,7 +689,7 @@ static void PrintHeader(const Proto* f)
 	f->linedefined,f->lastlinedefined,
 	S(f->sizecode),VOID(f));
  printf("%d%s param%s, %d slot%s, %d upvalue%s, ",
-	(int)(f->numparams),(f->flag & PF_ISVARARG)?"+":"",SS(f->numparams),
+	(int)(f->numparams),isvararg(f)?"+":"",SS(f->numparams),
 	S(f->maxstacksize),S(f->sizeupvalues));
  printf("%d local%s, %d constant%s, %d function%s\n",
 	S(f->sizelocvars),S(f->sizek),S(f->sizep));
