@@ -364,7 +364,7 @@ void luaV_finishset (lua_State *L, const TValue *t, TValue *key,
     }
     t = tm;  /* else must repeat assignment over 'tm' */
     /* do the equivalent to 'luaV_fastset', but saving 'h' */
-    if (!ttistable(t))
+    if (!ttistable(t) || isshared(hvalue(t)))
       hres = HNOTATABLE;
     else {
       Table *h = hvalue(t);  /* next call can change the value at 't' */
