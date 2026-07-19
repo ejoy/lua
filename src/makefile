@@ -30,7 +30,7 @@ CMCFLAGS=
 
 # == END OF USER SETTINGS -- NO NEED TO CHANGE ANYTHING BELOW THIS LINE =======
 
-PLATS= guess aix bsd c89 freebsd generic ios linux macosx mingw posix solaris
+PLATS= guess aix bsd c89 freebsd generic ios linux macosx mingw posix solaris openbsd
 
 LUA_A=	liblua.a
 CORE_O=	lapi.o lcode.o lctype.o ldebug.o ldo.o ldump.o lfunc.o lgc.o llex.o lmem.o lobject.o lopcodes.o lparser.o lstate.o lstring.o ltable.o ltm.o lundump.o lvm.o lzio.o
@@ -112,7 +112,7 @@ c89:
 	@echo '*** with LUA_USE_C89 to ensure consistency'
 	@echo ''
 
-FreeBSD NetBSD OpenBSD freebsd:
+FreeBSD NetBSD OpenBSD freebsd openbsd:
 	$(MAKE) $(ALL) SYSCFLAGS="-DLUA_USE_LINUX -DLUA_USE_READLINE -I/usr/include/edit" SYSLIBS="-Wl,-E -ledit" CC="cc"
 
 generic: $(ALL)
@@ -127,7 +127,7 @@ Darwin macos macosx:
 	$(MAKE) $(ALL) SYSCFLAGS="-DLUA_USE_MACOSX -DLUA_USE_READLINE" SYSLIBS="-lreadline"
 
 mingw:
-	$(MAKE) "LUA_A=lua55.dll" "LUA_T=lua.exe" \
+	$(MAKE) "LUA_A=lua54.dll" "LUA_T=lua.exe" \
 	"AR=$(CC) -shared -o" "RANLIB=strip --strip-unneeded" \
 	"SYSCFLAGS=-DLUA_BUILD_AS_DLL" "SYSLIBS=" "SYSLDFLAGS=-s" lua.exe
 	$(MAKE) "LUAC_T=luac.exe" luac.exe
