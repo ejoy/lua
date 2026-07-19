@@ -19,7 +19,7 @@ by Roberto Ierusalimschy, Luiz Henrique de Figueiredo, Waldemar Celes
 
 <P>
 <SMALL>
-Copyright &copy; 2020&ndash;2025 Lua.org, PUC-Rio.
+Copyright &copy; 2020&ndash;2026 Lua.org, PUC-Rio.
 Freely available under the terms of the
 <a href="https://www.lua.org/license.html">Lua license</a>.
 </SMALL>
@@ -3263,7 +3263,21 @@ which behaves like a nil value.
 <h3>4.1.3 &ndash; <a name="4.1.3">Pointers to Strings</a></h3>
 
 <p>
-Several functions in the API return pointers (<code>const char*</code>)
+Several functions in the API have parameters
+that are pointers to C strings (<code>const char*</code>).
+Some of these parameters have an associated length (<code>size_t</code>).
+Unless stated otherwise,
+when there is an associated length,
+the string can contain embedded zeros;
+moreover, the pointer can be <code>NULL</code> if the length is zero.
+When there is no associated length,
+the pointer must point to a zero-terminated string.
+In any case, the string contents should remain unchanged
+until the function returns.
+
+
+<p>
+Several functions in the API also return pointers (<code>const char*</code>)
 to Lua strings in the stack.
 (See <a href="#lua_pushfstring"><code>lua_pushfstring</code></a>, <a href="#lua_pushlstring"><code>lua_pushlstring</code></a>,
 <a href="#lua_pushstring"><code>lua_pushstring</code></a>, and <a href="#lua_tolstring"><code>lua_tolstring</code></a>.
@@ -4814,8 +4828,14 @@ like any Lua object.
 This function creates and pushes on the stack a new full userdata,
 with <code>nuvalue</code> associated Lua values, called <code>user values</code>,
 plus an associated block of raw memory with <code>size</code> bytes.
-(The user values can be set and read with the functions
-<a href="#lua_setiuservalue"><code>lua_setiuservalue</code></a> and <a href="#lua_getiuservalue"><code>lua_getiuservalue</code></a>.)
+
+
+<p>
+The user values can be set and read with the functions
+<a href="#lua_setiuservalue"><code>lua_setiuservalue</code></a> and <a href="#lua_getiuservalue"><code>lua_getiuservalue</code></a>.
+The block of memory is suitably aligned for any ISO&nbsp;C object.
+(See macro <code>LUAI_MAXALIGN</code> in file <code>luaconf.h</code> for other
+alignment requirements.)
 
 
 <p>
@@ -4869,8 +4889,10 @@ this confuses the next call to <a href="#lua_next"><code>lua_next</code></a>.
 <p>
 This function may raise an error if the given key
 is neither <b>nil</b> nor present in the table.
-See function <a href="#pdf-next"><code>next</code></a> for the caveats of modifying
-the table during its traversal.
+
+
+<p>
+See function <a href="#pdf-next"><code>next</code></a> for more details about the traversal.
 
 
 
@@ -5540,7 +5562,7 @@ Starts and resumes a coroutine in the given thread <code>L</code>.
 To start a coroutine,
 you push the main function plus any arguments
 onto the empty stack of the thread.
-then you call <a href="#lua_resume"><code>lua_resume</code></a>,
+Then you call <a href="#lua_resume"><code>lua_resume</code></a>,
 with <code>nargs</code> being the number of arguments.
 The function returns when the coroutine suspends,
 finishes its execution, or raises an unprotected error.
@@ -5790,7 +5812,7 @@ You can resume threads with status <a href="#pdf-LUA_OK"><code>LUA_OK</code></a>
 
 
 <hr><h3><a name="lua_stringtonumber"><code>lua_stringtonumber</code></a></h3><p>
-<span class="apii">[-0, +1, &ndash;]</span>
+<span class="apii">[-0, +(0|1), &ndash;]</span>
 <pre>size_t lua_stringtonumber (lua_State *L, const char *s);</pre>
 
 <p>
@@ -6241,7 +6263,7 @@ Lua calls the given continuation function <code>k</code> to continue
 the execution of the C&nbsp;function that yielded (see <a href="#4.5">&sect;4.5</a>).
 This continuation function receives the same stack
 from the previous function,
-with the <code>n</code> results removed and
+with all the results (<code>nresults</code>) removed and
 replaced by the arguments passed to <a href="#lua_resume"><code>lua_resume</code></a>.
 Moreover,
 the continuation function receives the value <code>ctx</code>
@@ -6342,7 +6364,7 @@ the function was defined in a string where
 </li>
 
 <li><b><code>srclen</code></b>: 
-The length of the string <code>source</code>.
+the length of the string <code>source</code>.
 </li>
 
 <li><b><code>short_src</code></b>: 
@@ -6528,7 +6550,7 @@ running at the given level;
 </li>
 
 <li><b>'<code>S</code>'</b>: 
-fills in the fields <code>source</code>, <code>short_src</code>,
+fills in the fields <code>source</code>, <code>srclen</code>, <code>short_src</code>,
 <code>linedefined</code>, <code>lastlinedefined</code>, and <code>what</code>;
 </li>
 
@@ -6759,7 +6781,9 @@ the number of active local variables.
 
 
 <p>
-Parameters <code>ar</code> and <code>n</code> are as in the function <a href="#lua_getlocal"><code>lua_getlocal</code></a>.
+Parameters <code>ar</code> and <code>n</code> are as in the function <a href="#lua_getlocal"><code>lua_getlocal</code></a>,
+except that <code>ar</code> cannot be <code>NULL</code>,
+as <code>lua_setlocal</code> only operates on activation records.
 
 
 
@@ -8654,8 +8678,7 @@ will iterate over all key&ndash;value pairs of table <code>t</code>.
 
 
 <p>
-See function <a href="#pdf-next"><code>next</code></a> for the caveats of modifying
-the table during its traversal.
+See function <a href="#pdf-next"><code>next</code></a> for more details about the traversal.
 
 
 
@@ -11681,6 +11704,9 @@ which automatically removes the file when the program ends.
 <p>
 This library provides
 the functionality of the debug interface (<a href="#4.7">&sect;4.7</a>) to Lua programs.
+
+
+<p>
 You should exert care when using this library.
 Several of its functions
 violate basic assumptions about Lua code
@@ -11690,6 +11716,8 @@ that userdata metatables cannot be changed by Lua code;
 that Lua programs do not crash)
 and therefore can compromise otherwise secure code.
 Moreover, some functions in this library may be slow.
+It is good practice to always require this library explicitly
+before using it.
 
 
 <p>
@@ -12306,6 +12334,11 @@ change between versions.
 <li>
 The word <b>global</b> is a reserved word.
 Do not use it as a regular name.
+
+
+<p>
+The compilation option <code>LUA_COMPAT_GLOBAL</code> (see <code>luaconf.h</code>)
+makes <code>global</code> a regular word.
 </li>
 
 <li>
@@ -12435,7 +12468,7 @@ and LiteralString, see <a href="#3.1">&sect;3.1</a>.)
 		 <b>local</b> <b>function</b> Name funcbody | 
 		 <b>global</b> <b>function</b> Name funcbody | 
 		 <b>local</b> attnamelist [&lsquo;<b>=</b>&rsquo; explist] | 
-		 <b>global</b> attnamelist | 
+		 <b>global</b> attnamelist [&lsquo;<b>=</b>&rsquo; explist] | 
 		 <b>global</b> [attrib] &lsquo;<b>*</b>&rsquo; 
 
 	attnamelist ::=  [attrib] Name [attrib] {&lsquo;<b>,</b>&rsquo; Name [attrib]}
@@ -12499,10 +12532,10 @@ and LiteralString, see <a href="#3.1">&sect;3.1</a>.)
 
 <P CLASS="footer">
 Last update:
-Mon Dec 15 21:02:05 UTC 2025
+Wed Jul 15 20:19:12 UTC 2026
 </P>
 <!--
-Last change: revised for Lua 5.5.0
+Last change: revised for Lua 5.5.1
 -->
 
 </body></html>
